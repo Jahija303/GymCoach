@@ -1,0 +1,12 @@
+{
+  "name": "gymcoach",
+  "version": "1.0.0",
+  "description": "A simple GymCoach Node.js application",
+  "main": "app.js",
+  "scripts": {
+    "start": "node app.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2"
+  }
+}
