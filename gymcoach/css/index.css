@@ -1,6 +1,7 @@
 body {
   font-family: Arial, sans-serif;
   display: flex;
+  flex-direction: column;
   justify-content: center;
   align-items: center;
   min-height: 100vh;
@@ -11,4 +12,67 @@ body {
 h1 {
   color: #333;
   font-size: 3em;
+}
+
+#video-container {
+  margin: 20px;
+  border: 2px solid #333;
+  border-radius: 10px;
+  overflow: hidden;
+  background-color: #000;
+}
+
+#localVideo {
+  width: 640px;
+  height: 480px;
+  display: block;
+}
+
+#controls {
+  margin: 20px;
+  display: flex;
+  gap: 10px;
+}
+
+button {
+  padding: 10px 20px;
+  font-size: 16px;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+#startBtn {
+  background-color: #4CAF50;
+  color: white;
+}
+
+#startBtn:hover:not(:disabled) {
+  background-color: #45a049;
+}
+
+#stopBtn {
+  background-color: #f44336;
+  color: white;
+}
+
+#stopBtn:hover:not(:disabled) {
+  background-color: #da190b;
+}
+
+button:disabled {
+  background-color: #cccccc;
+  cursor: not-allowed;
+}
+
+#status {
+  margin: 10px;
+  padding: 10px;
+  border-radius: 5px;
+  background-color: #e7f3ff;
+  border: 1px solid #b8daff;
+  color: #004085;
+  min-width: 300px;
+  text-align: center;
 }

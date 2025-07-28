@@ -16,20 +16,25 @@ nvm use lts/jod
 node -v
 ```
 
+## Install system dependencies
+
+```bash
+# sudo apt update
+# sudo apt upgrade
+# sudo apt install -y libopencv-dev python3-opencv
+# pkg-config --modversion opencv4 # verifiy installation
+# sudo apt install -y build-essential cmake
+
+# # where is opencv installed
+# find /usr -name "libopencv_core.so*" 2>/dev/null | head -5
+```
+
 ## Run the GymCoach App
 
-1. Navigate to the gymcoach directory:
+Install node dependencies and run the app
 ```bash
-cd gymcoach
-```
-
-2. Install dependencies:
-```bash
+cd GymCoach/gymcoach
 npm install
-```
-
-3. Start the application:
-```bash
 npm start
 ```
 
