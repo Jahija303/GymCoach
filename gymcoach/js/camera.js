@@ -4,10 +4,9 @@ const canvas = document.getElementById('canvas');
 const ctx = canvas.getContext('2d');
 const startBtn = document.getElementById('startBtn');
 const stopBtn = document.getElementById('stopBtn');
-const status = document.getElementById('status');
+const cameraStatus = document.getElementById('status');
 
 let stream = null;
-let isStreaming = false;
 const FPS = 15;
 let intervalId = null;
 
@@ -30,14 +29,13 @@ async function startCamera() {
     
     startFrameCapture();
     
-    isStreaming = true;
     startBtn.disabled = true;
     stopBtn.disabled = false;
-    status.textContent = 'Camera started';
+    cameraStatus.textContent = 'Camera started';
     
     } catch (error) {
         console.error('Error accessing camera:', error);
-        status.textContent = 'Error accessing camera: ' + error.message;
+        cameraStatus.textContent = 'Error accessing camera: ' + error.message;
     }
 }
 
@@ -69,10 +67,9 @@ function stopCamera() {
     }
     
     localVideo.srcObject = null;
-    isStreaming = false;
     startBtn.disabled = false;
     stopBtn.disabled = true;
-    status.textContent = 'Camera stopped';
+    cameraStatus.textContent = 'Camera stopped';
 }
 
 startBtn.addEventListener('click', startCamera);
@@ -80,10 +77,10 @@ stopBtn.addEventListener('click', stopCamera);
 
 socket.on('connect', () => {
     console.log('Connected to server');
-    status.textContent = 'Connected to server';
+    cameraStatus.textContent = 'Connected to server';
 });
 
 socket.on('disconnect', () => {
     console.log('Disconnected from server');
-    status.textContent = 'Disconnected from server';
+    cameraStatus.textContent = 'Disconnected from server';
 });
