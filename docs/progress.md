@@ -16,3 +16,4 @@ task: 223-display-video-stream-in-browser
 ## 29.07.2025.
 
 task: 226-display-live-meta-info
+- We managed to display the average color and metadata by using the library sharp (https://github.com/lovell/sharp)
