@@ -17,3 +17,6 @@ task: 223-display-video-stream-in-browser
 
 task: 226-display-live-meta-info
 - We managed to display the average color and metadata by using the library sharp (https://github.com/lovell/sharp)
+
+task: 227-frame-processing
+- Using the sharp library gives us a lot of image manipulation tools which makes it relatively simple to downsample a frame and add any effects to it, it is also very quick and optimized so it does not give us any issues with rendering

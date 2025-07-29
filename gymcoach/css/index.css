@@ -20,12 +20,27 @@ h1 {
   border-radius: 10px;
   overflow: hidden;
   background-color: #000;
+  display: flex;
+  gap: 20px;
+  padding: 20px;
 }
 
-#localVideo {
+.video-section {
+  text-align: center;
+}
+
+.video-section h3 {
+  color: white;
+  margin: 0 0 10px 0;
+  font-size: 1.2em;
+}
+
+#localVideo, #processedFrame {
   width: 640px;
   height: 480px;
   display: block;
+  border: 1px solid #555;
+  border-radius: 5px;
 }
 
 #controls {

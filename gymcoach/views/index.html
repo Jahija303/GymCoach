@@ -6,7 +6,14 @@
 </head>
 <body>
   <div id="video-container">
-    <video id="localVideo" autoplay muted playsinline></video>
+    <div class="video-section">
+      <h3>Original</h3>
+      <video id="localVideo" autoplay muted playsinline></video>
+    </div>
+    <div class="video-section">
+      <h3>Downsampled</h3>
+      <img id="processedFrame" alt="Processed frame will appear here">
+    </div>
     <canvas id="canvas" style="display: none;"></canvas>
   </div>
   <div id="controls">
