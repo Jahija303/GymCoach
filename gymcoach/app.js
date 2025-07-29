@@ -22,6 +22,7 @@ io.on('connection', (socket) => {
     const averageColor = await calculateAverageColor(buffer);
 
     socket.emit('average-color', averageColor);
+    console.log(await sharp(buffer).metadata());
   });
 });
 
