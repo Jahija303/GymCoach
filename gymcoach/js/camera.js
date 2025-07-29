@@ -1,5 +1,6 @@
 const socket = io.connect("http://localhost:3000");
 const localVideo = document.getElementById('localVideo');
+const processedFrame = document.getElementById('processedFrame');
 const canvas = document.getElementById('canvas');
 const ctx = canvas.getContext('2d');
 const startBtn = document.getElementById('startBtn');
@@ -86,6 +87,13 @@ socket.on('average-color', (color) => {
     averageColorDiv.style.backgroundColor = `rgb(${color.r}, ${color.g}, ${color.b})`;
     averageColorDiv.style.color = (color.r + color.g + color.b) > 382 ? 'black' : 'white';
     averageColorDiv.style.display = 'block';
+});
+
+socket.on('processed-frame', (frameData) => {
+    if (frameData) {
+        processedFrame.src = frameData;
+        processedFrame.style.display = 'block';
+    }
 });
 
 socket.on('disconnect', () => {
