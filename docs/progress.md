@@ -20,3 +20,6 @@ task: 226-display-live-meta-info
 
 task: 227-frame-processing
 - Using the sharp library gives us a lot of image manipulation tools which makes it relatively simple to downsample a frame and add any effects to it, it is also very quick and optimized so it does not give us any issues with rendering
+
+task: 228-recognize-people-in-the-frame
+- Researching opencv (https://opencv.org/university/free-opencv-course/?utm_source=opcvu&utm_medium=menu&utm_campaign=obc)
