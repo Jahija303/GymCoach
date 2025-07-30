@@ -31,3 +31,5 @@ task: 228-recognize-people-in-the-frame
 - Going through the openCV course on the basics of computer vision
 - Learning about different image loading and rendering methods, image processing, filtering, blurring.
 - Camera access, video render, video storing, detecting sharp and canny edges
+- Object tracking, face detection, TensorFlow object detection and pose estimation using OpenPose
+- This course also had a quiz after each chapter which strengthened our understanding a bit
