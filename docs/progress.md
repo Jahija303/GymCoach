@@ -13,7 +13,7 @@ task: 223-display-video-stream-in-browser
 - node-webcam does not support camera on mobile phone
 - We fixed our implementation by utilizing browsers built in navigator.mediaDevices.getUserMedia API, which works smoothly, the implementation was changed so that the media displays the video directly to the client, and then capture every nth frame and send it to the server for processing.
 
-## 29.07.2025.
+## 29.07.2025
 
 task: 226-display-live-meta-info
 - We managed to display the average color and metadata by using the library sharp (https://github.com/lovell/sharp)
@@ -23,3 +23,11 @@ task: 227-frame-processing
 
 task: 228-recognize-people-in-the-frame
 - Researching opencv (https://opencv.org/university/free-opencv-course/?utm_source=opcvu&utm_medium=menu&utm_campaign=obc)
+
+## 30.07.2025
+
+task: 228-recognize-people-in-the-frame
+
+- Going through the openCV course on the basics of computer vision
+- Learning about different image loading and rendering methods, image processing, filtering, blurring.
+- Camera access, video render, video storing, detecting sharp and canny edges
