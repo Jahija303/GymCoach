@@ -33,3 +33,8 @@ task: 228-recognize-people-in-the-frame
 - Camera access, video render, video storing, detecting sharp and canny edges
 - Object tracking, face detection, TensorFlow object detection and pose estimation using OpenPose
 - This course also had a quiz after each chapter which strengthened our understanding a bit
+
+next steps:
+
+- How can we integrate opencv into our nodejs application ?
+- Can we try opencv4nodejs again and make it work correctly ? Or do we have to pivot to a python application with an interfacte for the browser ?
