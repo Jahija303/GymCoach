@@ -19,14 +19,7 @@ node -v
 ## Install system dependencies
 
 ```bash
-# sudo apt update
-# sudo apt upgrade
-# sudo apt install -y libopencv-dev python3-opencv
-# pkg-config --modversion opencv4 # verifiy installation
-# sudo apt install -y build-essential cmake
-
-# # where is opencv installed
-# find /usr -name "libopencv_core.so*" 2>/dev/null | head -5
+# TODO
 ```
 
 ## Run the GymCoach App
