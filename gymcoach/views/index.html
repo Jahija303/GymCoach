@@ -7,15 +7,9 @@
 <body>
   <div id="video-container">
     <div class="video-section">
-      <h3>Original</h3>
       <video id="localVideo" autoplay muted playsinline></video>
-      <canvas id="poseCanvas" style="position: absolute; top: 30px; left: 0; pointer-events: none;"></canvas>
+      <canvas id="poseCanvas"></canvas>
     </div>
-    <div class="video-section">
-      <h3>Downsampled</h3>
-      <img id="processedFrame" alt="Processed frame will appear here">
-    </div>
-    <canvas id="canvas" style="display: none;"></canvas>
   </div>
   <div id="controls">
     <button id="startBtn">Start Camera</button>

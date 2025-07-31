@@ -1,8 +1,5 @@
 const socket = io.connect("http://localhost:3000");
 const localVideo = document.getElementById('localVideo');
-const processedFrame = document.getElementById('processedFrame');
-const canvas = document.getElementById('canvas');
-const ctx = canvas.getContext('2d');
 const poseCanvas = document.getElementById('poseCanvas');
 const poseCtx = poseCanvas.getContext('2d');
 const startBtn = document.getElementById('startBtn');
@@ -17,8 +14,6 @@ let intervalId = null;
 let poseDetector = null;
 let isModelLoaded = false;
 
-canvas.width = 640;
-canvas.height = 480;
 poseCanvas.width = 640;
 poseCanvas.height = 480;
 
@@ -143,14 +138,6 @@ async function startCamera() {
 function startFrameCapture() {
     intervalId = setInterval(async () => {
         if (stream && localVideo.videoWidth > 0) {
-            // Draw current video frame to canvas
-            ctx.drawImage(localVideo, 0, 0, canvas.width, canvas.height);
-            
-            // Convert canvas to base64 image data
-            const frameData = canvas.toDataURL('image/jpeg', 0.8);
-            
-            // Send frame to server
-            socket.emit('video-frame', frameData);
             
             // Perform pose detection if model is loaded
             if (isModelLoaded && poseDetector) {
@@ -194,13 +181,6 @@ stopBtn.addEventListener('click', stopCamera);
 socket.on('connect', () => {
     console.log('Connected to server');
     cameraStatus.textContent = 'Connected to server';
-});
-
-socket.on('processed-frame', (frameData) => {
-    if (frameData) {
-        processedFrame.src = frameData;
-        processedFrame.style.display = 'block';
-    }
 });
 
 socket.on('disconnect', () => {
