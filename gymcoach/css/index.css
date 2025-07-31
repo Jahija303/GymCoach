@@ -14,15 +14,17 @@ h1 {
   font-size: 3em;
 }
 
+.header {
+  width: 1280px;
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+}
+
 #video-container {
-  margin: 20px;
-  border: 2px solid #333;
-  border-radius: 10px;
   overflow: hidden;
   background-color: #000;
   display: flex;
-  gap: 20px;
-  padding: 20px;
 }
 
 .video-section {
@@ -54,7 +56,7 @@ h1 {
 }
 
 #controls {
-  margin: 20px;
+  margin: 20px 20px 20px 0;
   display: flex;
   gap: 10px;
 }
@@ -92,7 +94,7 @@ button:disabled {
 }
 
 #status {
-  margin: 10px;
+  margin: 20px 0 20px 20px;
   padding: 10px;
   border-radius: 5px;
   background-color: #e7f3ff;

@@ -50,6 +50,7 @@ progress:
 - We decided not to use opencv, since tensorflow.js is faster and has better integration with javascript
 - We have managed to recognize different parts of a person with tensorflow.js
 - We are using client-side model processing, since server-side processing might be too resource intensive and currently an overkill
+- We found out that the MoveNet model is highly optimized for browser usage, we will stick with it as long as we can (or until we run into a potential roadblock)
 
 current problems:
 - not adapted for different screen sizes
