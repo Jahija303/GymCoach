@@ -9,105 +9,158 @@ const poseStatus = document.getElementById('pose-status');
 const poseData = document.getElementById('pose-data');
 
 let stream = null;
-const FPS = 15;
+const FPS = 30;
 let intervalId = null;
 let poseDetector = null;
 let isModelLoaded = false;
 
-// 1280 x 720
+// 1280 x 720 (16x9 aspect ratio)
 poseCanvas.width = 1280;
 poseCanvas.height = 720;
 
-// Initialize pose detection model
 async function initializePoseDetection() {
     try {
-        poseStatus.textContent = 'Loading pose detection model...';
-        
-        // Create a detector with MoveNet Lightning model
+        poseStatus.textContent = 'Loading MoveNet model...';
+
+        const modelType = poseDetection.movenet.modelType.SINGLEPOSE_LIGHTNING;
         const detectorConfig = {
-            modelType: poseDetection.movenet.modelType.SINGLEPOSE_LIGHTNING,
+            modelType: modelType,
+            enableSmoothing: true, // Smooth predictions across frames
+            enableSegmentation: false, // Set to true if you need segmentation masks
+            minPoseScore: 0.25, // Minimum confidence for pose detection
         };
-        
+
         poseDetector = await poseDetection.createDetector(
             poseDetection.SupportedModels.MoveNet, 
             detectorConfig
         );
-        
+
         isModelLoaded = true;
-        poseStatus.textContent = 'Pose detection model loaded successfully!';
-        console.log('Pose detection model loaded');
+        poseStatus.textContent = `MoveNet ${modelType} model loaded successfully!`;
     } catch (error) {
-        console.error('Error loading pose detection model:', error);
-        poseStatus.textContent = 'Error loading pose detection model: ' + error.message;
+        poseStatus.textContent = 'Error loading MoveNet model: ' + error.message;
     }
 }
 
-// Draw pose keypoints and skeleton
 function drawPose(poses) {
-    // Clear canvas
     poseCtx.clearRect(0, 0, poseCanvas.width, poseCanvas.height);
     
     if (poses.length > 0) {
-        const pose = poses[0]; // Get first detected pose
-        
-        // Draw keypoints
-        pose.keypoints.forEach((keypoint) => {
-            if (keypoint.score > 0.3) { // Only draw confident keypoints
-                poseCtx.beginPath();
-                poseCtx.arc(keypoint.x, keypoint.y, 5, 0, 2 * Math.PI);
-                poseCtx.fillStyle = 'red';
-                poseCtx.fill();
-                
-                // Draw keypoint label
-                poseCtx.fillStyle = 'white';
-                poseCtx.font = '10px Arial';
-                poseCtx.fillText(keypoint.name, keypoint.x + 6, keypoint.y - 6);
-            }
-        });
-        
-        // Draw skeleton connections
-        const adjacentKeyPoints = poseDetection.util.getAdjacentPairs(poseDetection.SupportedModels.MoveNet);
-        adjacentKeyPoints.forEach(([i, j]) => {
+        const pose = poses[0];
+
+        // MoveNet keypoint connections (skeleton)
+        const connections = [
+            [5, 6], [5, 7], [7, 9], [6, 8], [8, 10], // arms
+            [5, 11], [6, 12], [11, 12], // torso
+            [11, 13], [13, 15], [12, 14], [14, 16], // legs
+            [0, 1], [0, 2], [1, 3], [2, 4] // face
+        ];
+
+        // Draw skeleton connections first, behind keypoints
+        connections.forEach(([i, j]) => {
             const kp1 = pose.keypoints[i];
             const kp2 = pose.keypoints[j];
-            
+
             // Only draw if both keypoints are confident
-            if (kp1.score > 0.3 && kp2.score > 0.3) {
+            if (kp1.score > 0.25 && kp2.score > 0.25) {
                 poseCtx.beginPath();
                 poseCtx.moveTo(kp1.x, kp1.y);
                 poseCtx.lineTo(kp2.x, kp2.y);
-                poseCtx.strokeStyle = 'blue';
-                poseCtx.lineWidth = 2;
+                poseCtx.strokeStyle = 'rgba(0, 128, 255, 0.8)';
+                poseCtx.lineWidth = 3;
                 poseCtx.stroke();
             }
         });
-        
-        // Display pose data
+
+        // Draw keypoints on top
+        pose.keypoints.forEach((keypoint, index) => {
+            if (keypoint.score > 0.25) {
+                // Draw keypoint circle
+                poseCtx.beginPath();
+                poseCtx.arc(keypoint.x, keypoint.y, 6, 0, 2 * Math.PI);
+
+                if (index < 5) { // Face keypoints
+                    poseCtx.fillStyle = 'red';
+                } else if (index < 11) { // Upper body
+                    poseCtx.fillStyle = 'orange';
+                } else { // Lower body
+                    poseCtx.fillStyle = 'blue';
+                }
+                poseCtx.fill();
+
+                poseCtx.fillStyle = 'white';
+                poseCtx.font = '12px Arial';
+                poseCtx.strokeStyle = 'black';
+                poseCtx.lineWidth = 3;
+                poseCtx.strokeText(keypoint.name || `KP${index}`, keypoint.x + 8, keypoint.y - 8);
+                poseCtx.fillText(keypoint.name || `KP${index}`, keypoint.x + 8, keypoint.y - 8);
+            }
+        });
+
         displayPoseData(poses);
     }
 }
 
-// Display pose information
 function displayPoseData(poses) {
     if (poses.length > 0) {
         const pose = poses[0];
-        let poseInfo = `Detected ${poses.length} pose(s)\n\nConfident keypoints:\n`;
-        
+
+        const keypointNames = [
+            'nose', 'left_eye', 'right_eye', 'left_ear', 'right_ear',
+            'left_shoulder', 'right_shoulder', 'left_elbow', 'right_elbow',
+            'left_wrist', 'right_wrist', 'left_hip', 'right_hip',
+            'left_knee', 'right_knee', 'left_ankle', 'right_ankle'
+        ];
+
+        let poseInfo = `MoveNet Detection Results:\n`;
+        poseInfo += `Overall Pose Score: ${(pose.score * 100).toFixed(1)}%\n\n`;
+        poseInfo += `Confident keypoints (>25%):\n`;
+
+        let confidentKeypoints = 0;
         pose.keypoints.forEach((keypoint, index) => {
-            if (keypoint.score > 0.3) {
-                poseInfo += `${keypoint.name}: (${Math.round(keypoint.x)}, ${Math.round(keypoint.y)}) - ${Math.round(keypoint.score * 100)}%\n`;
+            if (keypoint.score > 0.25) {
+                confidentKeypoints++;
             }
         });
+
+        poseInfo += `\nTotal confident keypoints: ${confidentKeypoints}/17`;
+        
+        // Add pose quality assessment
+        if (confidentKeypoints >= 12) {
+            poseInfo += `\n✅ High quality pose detection`;
+        } else if (confidentKeypoints >= 8) {
+            poseInfo += `\n⚠️ Medium quality pose detection`;
+        } else {
+            poseInfo += `\n❌ Low quality pose detection`;
+        }
         
         poseData.textContent = poseInfo;
     } else {
-        poseData.textContent = 'No poses detected';
+        poseData.textContent = 'No poses detected by MoveNet';
     }
+}
+
+function startFrameCapture() {
+    intervalId = setInterval(async () => {
+        if (stream && localVideo.videoWidth > 0 && isModelLoaded && poseDetector) {
+            try {
+                // MoveNet works best with the video element directly
+                const poses = await poseDetector.estimatePoses(localVideo, {
+                    maxPoses: 1, // Single pose detection
+                    flipHorizontal: false, // Mirror image
+                    scoreThreshold: 0.25 // Minimum keypoint confidence
+                });
+
+                drawPose(poses);
+            } catch (error) {
+                console.error('Error during MoveNet pose detection:', error);
+            }
+        }
+    }, 1000 / FPS);
 }
 
 async function startCamera() {
     try {
-        // Initialize pose detection if not already done
         if (!isModelLoaded) {
             await initializePoseDetection();
         }
@@ -123,34 +176,15 @@ async function startCamera() {
         });
 
         localVideo.srcObject = stream;
-        
+
         startFrameCapture();
-        
+
         startBtn.disabled = true;
         stopBtn.disabled = false;
         cameraStatus.textContent = 'Camera started with pose detection';
-        
     } catch (error) {
-        console.error('Error accessing camera:', error);
         cameraStatus.textContent = 'Error accessing camera: ' + error.message;
     }
-}
-
-function startFrameCapture() {
-    intervalId = setInterval(async () => {
-        if (stream && localVideo.videoWidth > 0) {
-            
-            // Perform pose detection if model is loaded
-            if (isModelLoaded && poseDetector) {
-                try {
-                    const poses = await poseDetector.estimatePoses(localVideo);
-                    drawPose(poses);
-                } catch (error) {
-                    console.error('Error during pose detection:', error);
-                }
-            }
-        }
-    }, 1000 / FPS);
 }
 
 function stopCamera() {
@@ -189,7 +223,6 @@ socket.on('disconnect', () => {
     cameraStatus.textContent = 'Disconnected from server';
 });
 
-// Initialize pose detection when page loads
 document.addEventListener('DOMContentLoaded', () => {
     initializePoseDetection();
 });
