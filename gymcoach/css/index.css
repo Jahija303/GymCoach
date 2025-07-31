@@ -37,8 +37,8 @@ h1 {
 }
 
 #localVideo {
-  width: 640px;
-  height: 480px;
+  width: 1280px;
+  height: 720px;
   display: block;
   border: 1px solid #555;
   border-radius: 5px;

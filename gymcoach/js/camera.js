@@ -14,8 +14,9 @@ let intervalId = null;
 let poseDetector = null;
 let isModelLoaded = false;
 
-poseCanvas.width = 640;
-poseCanvas.height = 480;
+// 1280 x 720
+poseCanvas.width = 1280;
+poseCanvas.height = 720;
 
 // Initialize pose detection model
 async function initializePoseDetection() {
@@ -114,8 +115,8 @@ async function startCamera() {
         // Request camera access
         stream = await navigator.mediaDevices.getUserMedia({
             video: {
-                width: { ideal: 640 },
-                height: { ideal: 480 },
+                width: { ideal: 1280 },
+                height: { ideal: 720 },
                 frameRate: { ideal: FPS }
             },
             audio: false
