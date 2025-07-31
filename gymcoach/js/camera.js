@@ -196,14 +196,6 @@ socket.on('connect', () => {
     cameraStatus.textContent = 'Connected to server';
 });
 
-socket.on('average-color', (color) => {
-    const averageColorDiv = document.getElementById('averageColor');
-    averageColorDiv.textContent = `Average Color: R: ${color.r}, G: ${color.g}, B: ${color.b}`;
-    averageColorDiv.style.backgroundColor = `rgb(${color.r}, ${color.g}, ${color.b})`;
-    averageColorDiv.style.color = (color.r + color.g + color.b) > 382 ? 'black' : 'white';
-    averageColorDiv.style.display = 'block';
-});
-
 socket.on('processed-frame', (frameData) => {
     if (frameData) {
         processedFrame.src = frameData;
