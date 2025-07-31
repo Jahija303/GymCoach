@@ -9,6 +9,7 @@
     <div class="video-section">
       <h3>Original</h3>
       <video id="localVideo" autoplay muted playsinline></video>
+      <canvas id="poseCanvas" style="position: absolute; top: 30px; left: 0; pointer-events: none;"></canvas>
     </div>
     <div class="video-section">
       <h3>Downsampled</h3>
@@ -21,8 +22,15 @@
     <button id="stopBtn" disabled>Stop Camera</button>
   </div>
   <div id="status"></div>
+  <div id="pose-info">
+    <h3>Pose Detection</h3>
+    <div id="pose-status">Loading pose detection model...</div>
+    <div id="pose-data"></div>
+  </div>
   <div id="averageColor"></div>
 
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.15.0/dist/tf.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/pose-detection@2.1.3/dist/pose-detection.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.8.1/socket.io.js"></script>
   <script src="/js/camera.js"></script>
 </body>
