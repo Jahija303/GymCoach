@@ -5,17 +5,19 @@
   <link rel="stylesheet" href="index.css">
 </head>
 <body>
+  <div class="header">
+    <div id="controls">
+      <button id="startBtn">Start Camera</button>
+      <button id="stopBtn" disabled>Stop Camera</button>
+    </div>
+    <div id="status"></div>
+  </div>
   <div id="video-container">
     <div class="video-section">
       <video id="localVideo" autoplay muted playsinline></video>
       <canvas id="poseCanvas"></canvas>
     </div>
   </div>
-  <div id="controls">
-    <button id="startBtn">Start Camera</button>
-    <button id="stopBtn" disabled>Stop Camera</button>
-  </div>
-  <div id="status"></div>
   <div id="pose-info">
     <div id="pose-status">Loading pose detection model...</div>
     <div id="pose-data"></div>
