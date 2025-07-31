@@ -19,10 +19,8 @@ io.on('connection', (socket) => {
   socket.on('video-frame', async (frameData) => {
     console.log('Received video frame from client');
     const buffer = Buffer.from(frameData.split(',')[1], 'base64');
-    const averageColor = await calculateAverageColor(buffer);
     const processedFrame = await downsampleFrame(buffer);
 
-    socket.emit('average-color', averageColor);
     socket.emit('processed-frame', processedFrame);
   });
 });
@@ -30,21 +28,6 @@ io.on('connection', (socket) => {
 server.listen(port, () => {
   console.log(`GymCoach app listening at http://localhost:${port}`);
 });
-
-async function calculateAverageColor(binaryBuffer) {
-  try {
-    const { dominant } = await sharp(binaryBuffer)
-      .stats();
-    
-    return {
-      r: Math.round(dominant.r),
-      g: Math.round(dominant.g),
-      b: Math.round(dominant.b)
-    };
-  } catch (error) {
-    console.error('Error calculating average color:', error);
-  }
-}
 
 async function downsampleFrame(binaryBuffer) {
   try {
