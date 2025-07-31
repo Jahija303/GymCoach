@@ -45,3 +45,13 @@ task: 228-recognize-people-in-the-frame
 
 ideas:
 - We now learned about two ways we can make this work, use tensorflow.js (or similar) to run client side in the browser, or send frames to the server and use opecv (or tensorflow or similar) to run the processing on server side and send responses to the client. If we use the server side processing, the problem will be scalability and network latency, if we use client side models the potential problem will be older device hardware.
+
+progress: 
+- We decided not to use opencv, since tensorflow.js is faster and has better integration with javascript
+- We have managed to recognize different parts of a person with tensorflow.js
+- We are using client-side model processing, since server-side processing might be too resource intensive and currently an overkill
+
+current problems:
+- not adapted for different screen sizes
+- is the person standing, or sitting? how can we retrieve more details about the persons posture
+- how can we check if the pose is actually an exercise?
