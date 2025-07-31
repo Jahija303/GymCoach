@@ -38,3 +38,10 @@ next steps:
 
 - How can we integrate opencv into our nodejs application ?
 - Can we try opencv4nodejs again and make it work correctly ? Or do we have to pivot to a python application with an interfacte for the browser ?
+
+## 31.07.2025
+
+task: 228-recognize-people-in-the-frame
+
+ideas:
+- We now learned about two ways we can make this work, use tensorflow.js (or similar) to run client side in the browser, or send frames to the server and use opecv (or tensorflow or similar) to run the processing on server side and send responses to the client. If we use the server side processing, the problem will be scalability and network latency, if we use client side models the potential problem will be older device hardware.
