@@ -36,7 +36,7 @@ h1 {
   font-size: 1.2em;
 }
 
-#localVideo, #processedFrame {
+#localVideo {
   width: 640px;
   height: 480px;
   display: block;
@@ -46,7 +46,7 @@ h1 {
 
 #poseCanvas {
   position: absolute;
-  top: 30px;
+  top: 0;
   left: 0;
   pointer-events: none;
   border: 1px solid #555;
