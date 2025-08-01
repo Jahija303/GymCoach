@@ -136,3 +136,42 @@ button:disabled {
   padding: 10px;
   border-radius: 3px;
 }
+
+#posture-status {
+  margin: 20px 0 20px 20px;
+  padding: 15px;
+  border-radius: 5px;
+  background-color: #fff3cd;
+  border: 1px solid #ffeaa7;
+  min-width: 200px;
+  text-align: center;
+}
+
+#posture-status h3 {
+  margin: 0 0 10px 0;
+  color: #856404;
+  font-size: 1.1em;
+}
+
+#posture-display {
+  font-size: 1.5em;
+  font-weight: bold;
+  padding: 10px;
+  border-radius: 5px;
+  text-transform: uppercase;
+}
+
+#posture-display.unknown {
+  background-color: #6c757d;
+  color: white;
+}
+
+#posture-display.sitting {
+  background-color: #17a2b8;
+  color: white;
+}
+
+#posture-display.standing {
+  background-color: #28a745;
+  color: white;
+}
