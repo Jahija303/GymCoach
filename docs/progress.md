@@ -56,3 +56,19 @@ current problems:
 - not adapted for different screen sizes
 - is the person standing, or sitting? how can we retrieve more details about the persons posture
 - how can we check if the pose is actually an exercise?
+
+## 01.08.2025
+
+task: 229-try-to-recognize-something-about-the-posture
+
+progress:
+- General investigation on how to classify poses and actions based on movenet model keypoints
+- We found that most solutions online use some sort of manual calculations to classify the pose, but they only do it for simple poses and not complex actions/movements
+- Currently we need to find a way to classify an action based on a series of keypoints across a certain timeframe
+- We watched a few machine learning videos to understand our options better
+- We found the [teachable machine page](https://teachablemachine.withgoogle.com/) which trains and creates a new model in a simple way
+
+current problems:
+- how can we classify an action based on movenet keypoints?
+- do we need to create a new model or is there a trained solution already?
+- can a model automatically recognize an action or do we have to manually make some similarity calculations?
