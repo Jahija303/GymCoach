@@ -67,6 +67,7 @@ progress:
 - Currently we need to find a way to classify an action based on a series of keypoints across a certain timeframe
 - We watched a few machine learning videos to understand our options better
 - We found the [teachable machine page](https://teachablemachine.withgoogle.com/) which trains and creates a new model in a simple way
+- We used AI to genererate a classifyPose function which manually calculates the current body position based on ligament angles and distances, we used this as an example for the manual solution
 
 current problems:
 - how can we classify an action based on movenet keypoints?
