@@ -90,3 +90,4 @@ branstorming:
 
 progress:
 - This idea will be scrapped, we are going for the manual joint angle calculations
+- Replaced movenet with media pipe blazepose since blazepose is more precise for fitness applications
