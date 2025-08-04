@@ -153,14 +153,23 @@ function displayPoseData(results) {
 }
 
 function startFrameCapture() {
+    let frameCount = 0;
+    
     intervalId = setInterval(async () => {
         if (stream && localVideo.videoWidth > 0 && isModelLoaded && poseLandmarker && webcamRunning) {
             try {
                 const startTimeMs = performance.now();
-                
                 const results = poseLandmarker.detectForVideo(localVideo, startTimeMs);
                 
                 drawPoseLandmarks(results);
+                
+                if (frameCount % 9 === 0) {
+                    handsPosition(results);
+                    legsPosition(results);
+                    bodyPosition(results);
+                }
+                
+                frameCount++;
             } catch (error) {
                 console.error('Error during MediaPipe pose detection:', error);
             }
@@ -225,6 +234,108 @@ function stopCamera() {
     stopBtn.disabled = true;
     cameraStatus.textContent = 'Camera stopped';
 }
+
+function handsPosition(results){
+    if (results.landmarks && results.landmarks.length > 0) {
+        const landmarks = results.landmarks[0];
+        
+        // Left arm angle (shoulder-elbow-wrist)
+        const leftShoulder = landmarks[11];
+        const leftElbow = landmarks[13];
+        const leftWrist = landmarks[15];
+        
+        // Right arm angle (shoulder-elbow-wrist)
+        const rightShoulder = landmarks[12];
+        const rightElbow = landmarks[14];
+        const rightWrist = landmarks[16];
+        
+
+        // Calculate left arm angle if all points are visible
+        if (leftShoulder.visibility > 0.5 && leftElbow.visibility > 0.5 && leftWrist.visibility > 0.5) {
+            const leftArmAngle = calculateAngle(leftShoulder, leftElbow, leftWrist);
+            console.log(`Left arm angle: ${leftArmAngle.toFixed(2)}°`);
+        }
+        
+        // Calculate right arm angle if all points are visible
+        if (rightShoulder.visibility > 0.5 && rightElbow.visibility > 0.5 && rightWrist.visibility > 0.5) {
+            const rightArmAngle = calculateAngle(rightShoulder, rightElbow, rightWrist);
+            console.log(`Right arm angle: ${rightArmAngle.toFixed(2)}°`);
+        }
+    }
+}
+
+function legsPosition(results) {
+    if (results.landmarks && results.landmarks.length > 0) {
+        const landmarks = results.landmarks[0];
+        const leftHip = landmarks[23];
+        const leftKnee = landmarks[25];
+        const leftAnkle = landmarks[27];
+        const rightHip = landmarks[24];
+        const rightKnee = landmarks[26];
+        const rightAnkle = landmarks[28];
+
+        // Calculate left leg angle if all points are visible
+        if (leftHip.visibility > 0.5 && leftKnee.visibility > 0.5 && leftAnkle.visibility > 0.5) {
+            const leftLegAngle = calculateAngle(leftHip, leftKnee, leftAnkle);
+            console.log(`Left leg angle: ${leftLegAngle.toFixed(2)}°`);
+        }
+
+        // Calculate right leg angle if all points are visible
+        if (rightHip.visibility > 0.5 && rightKnee.visibility > 0.5 && rightAnkle.visibility > 0.5) {
+            const rightLegAngle = calculateAngle(rightHip, rightKnee, rightAnkle);
+            console.log(`Right leg angle: ${rightLegAngle.toFixed(2)}°`);
+        }
+    }
+}
+
+function bodyPosition(results) {
+    if (results.landmarks && results.landmarks.length > 0) {
+        const landmarks = results.landmarks[0];
+        const leftShoulder = landmarks[11];
+        const rightShoulder = landmarks[12];
+        const leftHip = landmarks[23];
+        const rightHip = landmarks[24];
+        const leftKnee = landmarks[25];
+        const rightKnee = landmarks[26];
+
+        // Calculate body angle if all points are visible
+        // Left side angle (shoulder-hip-knee)
+        if (leftShoulder.visibility > 0.5 && leftHip.visibility > 0.5 && leftKnee.visibility > 0.5) {
+            const leftBodyAngle = calculateAngle(leftShoulder, leftHip, leftKnee);
+            console.log(`Left body angle: ${leftBodyAngle.toFixed(2)}°`);
+        }
+
+        // Right side angle (shoulder-hip-knee)
+        if (rightShoulder.visibility > 0.5 && rightHip.visibility > 0.5 && rightKnee.visibility > 0.5) {
+            const rightBodyAngle = calculateAngle(rightShoulder, rightHip, rightKnee);
+            console.log(`Right body angle: ${rightBodyAngle.toFixed(2)}°`);
+        }
+    }
+}
+
+
+
+function calculateAngle(point1, vertex, point2) {
+    const vector1 = {
+        x: point1.x - vertex.x,
+        y: point1.y - vertex.y
+    };
+    const vector2 = {
+        x: point2.x - vertex.x,
+        y: point2.y - vertex.y
+    };
+    
+    const dotProduct = vector1.x * vector2.x + vector1.y * vector2.y;
+    const magnitude1 = Math.sqrt(vector1.x * vector1.x + vector1.y * vector1.y);
+    const magnitude2 = Math.sqrt(vector2.x * vector2.x + vector2.y * vector2.y);
+    
+    const cosAngle = dotProduct / (magnitude1 * magnitude2);
+    const angleRadians = Math.acos(Math.max(-1, Math.min(1, cosAngle)));
+    const angleDegrees = (angleRadians * 180) / Math.PI;
+    
+    return angleDegrees;
+}
+        
 
 startBtn.addEventListener('click', startCamera);
 stopBtn.addEventListener('click', stopCamera);
