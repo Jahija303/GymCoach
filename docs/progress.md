@@ -91,3 +91,7 @@ branstorming:
 progress:
 - This idea will be scrapped, we are going for the manual joint angle calculations
 - Replaced movenet with media pipe blazepose since blazepose is more precise for fitness applications
+- We added hands, legs and body position, calculations based on joint angles
+
+problems:
+- We retrieve keypoints of the shoulders, hips, etc., but we do not know if a persons posture is correct, or if the person has bent shoulders, this could be a big problem for verifying the quality of an exercise or even verifying the persons posture.
