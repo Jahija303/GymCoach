@@ -140,169 +140,6 @@ function displayPoseData(poses) {
     }
 }
 
-function classifyPose(keypoints) {
-    const leftHip = keypoints[11];   // Left hip
-    const rightHip = keypoints[12];  // Right hip
-    const leftKnee = keypoints[13];  // Left knee
-    const rightKnee = keypoints[14]; // Right knee
-    const leftAnkle = keypoints[15]; // Left ankle
-    const rightAnkle = keypoints[16]; // Right ankle
-    const leftShoulder = keypoints[5]; // Left shoulder
-    const rightShoulder = keypoints[6]; // Right shoulder
-
-    const minConfidence = 0.25;
-
-    // Check if keypoints are visible with sufficient confidence
-    const hasLeftHip = leftHip && leftHip.score > minConfidence;
-    const hasRightHip = rightHip && rightHip.score > minConfidence;
-    const hasLeftKnee = leftKnee && leftKnee.score > minConfidence;
-    const hasRightKnee = rightKnee && rightKnee.score > minConfidence;
-    const hasLeftAnkle = leftAnkle && leftAnkle.score > minConfidence;
-    const hasRightAnkle = rightAnkle && rightAnkle.score > minConfidence;
-    const hasLeftShoulder = leftShoulder && leftShoulder.score > minConfidence;
-    const hasRightShoulder = rightShoulder && rightShoulder.score > minConfidence;
-
-    // If no hips are visible, cannot determine pose
-    if (!hasLeftHip && !hasRightHip) {
-        console.log("unknown - no hips detected");
-        updatePostureDisplay("unknown");
-        return "unknown";
-    }
-
-    // Get the primary hip (most confident or available)
-    let primaryHip = null;
-    let primaryKnee = null;
-    let primaryAnkle = null;
-    let primaryShoulder = null;
-
-    if (hasLeftHip && hasRightHip) {
-        // Use the hip with higher confidence
-        if (leftHip.score >= rightHip.score) {
-            primaryHip = leftHip;
-            primaryKnee = hasLeftKnee ? leftKnee : null;
-            primaryAnkle = hasLeftAnkle ? leftAnkle : null;
-            primaryShoulder = hasLeftShoulder ? leftShoulder : null;
-        } else {
-            primaryHip = rightHip;
-            primaryKnee = hasRightKnee ? rightKnee : null;
-            primaryAnkle = hasRightAnkle ? rightAnkle : null;
-            primaryShoulder = hasRightShoulder ? rightShoulder : null;
-        }
-    } else if (hasLeftHip) {
-        primaryHip = leftHip;
-        primaryKnee = hasLeftKnee ? leftKnee : null;
-        primaryAnkle = hasLeftAnkle ? leftAnkle : null;
-        primaryShoulder = hasLeftShoulder ? leftShoulder : null;
-    } else {
-        primaryHip = rightHip;
-        primaryKnee = hasRightKnee ? rightKnee : null;
-        primaryAnkle = hasRightAnkle ? rightAnkle : null;
-        primaryShoulder = hasRightShoulder ? rightShoulder : null;
-    }
-
-    // Method 1: Use hip-knee-ankle relationship (works for side view)
-    let sideViewResult = null;
-    if (primaryHip && primaryKnee && primaryAnkle) {
-        const hipKneeDistance = Math.abs(primaryHip.y - primaryKnee.y);
-        const kneeAnkleDistance = Math.abs(primaryKnee.y - primaryAnkle.y);
-        
-        // In side view: sitting = hip-knee distance < knee-ankle distance
-        // In side view: standing = hip-knee distance > knee-ankle distance
-        if (hipKneeDistance < kneeAnkleDistance * 0.8) {
-            sideViewResult = "sitting";
-        } else {
-            sideViewResult = "standing";
-        }
-    }
-
-    // Method 2: Use overall body proportions (works for front view)
-    let frontViewResult = null;
-    if (primaryHip && primaryShoulder) {
-        const shoulderHipDistance = Math.abs(primaryShoulder.y - primaryHip.y);
-        
-        if (primaryKnee) {
-            const hipKneeDistance = Math.abs(primaryHip.y - primaryKnee.y);
-            
-            // In front view: sitting typically has hip-knee distance relatively smaller
-            // compared to shoulder-hip distance
-            const ratio = hipKneeDistance / shoulderHipDistance;
-            
-            if (ratio < 0.8) {
-                frontViewResult = "sitting";
-            } else {
-                frontViewResult = "standing";
-            }
-        }
-    }
-
-    // Method 3: Use knee bend angle (works for both views)
-    let kneeBendResult = null;
-    if (primaryHip && primaryKnee && primaryAnkle) {
-        // Calculate angle at knee using dot product
-        const hipToKnee = {
-            x: primaryHip.x - primaryKnee.x,
-            y: primaryHip.y - primaryKnee.y
-        };
-        const ankleToKnee = {
-            x: primaryAnkle.x - primaryKnee.x,
-            y: primaryAnkle.y - primaryKnee.y
-        };
-        
-        const dotProduct = hipToKnee.x * ankleToKnee.x + hipToKnee.y * ankleToKnee.y;
-        const magnitudeProduct = Math.sqrt(hipToKnee.x * hipToKnee.x + hipToKnee.y * hipToKnee.y) *
-                                Math.sqrt(ankleToKnee.x * ankleToKnee.x + ankleToKnee.y * ankleToKnee.y);
-        
-        if (magnitudeProduct > 0) {
-            const cosAngle = dotProduct / magnitudeProduct;
-            const angle = Math.acos(Math.max(-1, Math.min(1, cosAngle))) * (180 / Math.PI);
-            
-            // Sitting typically has knee angle < 120 degrees
-            // Standing typically has knee angle > 140 degrees
-            if (angle < 120) {
-                kneeBendResult = "sitting";
-            } else if (angle > 140) {
-                kneeBendResult = "standing";
-            }
-        }
-    }
-
-    // Combine results with weighted voting
-    const results = [];
-    if (sideViewResult) results.push(sideViewResult);
-    if (frontViewResult) results.push(frontViewResult);
-    if (kneeBendResult) results.push(kneeBendResult);
-
-    if (results.length === 0) {
-        console.log("unknown - insufficient data for classification");
-        updatePostureDisplay("unknown");
-        return "unknown";
-    }
-
-    // Count votes
-    const sittingVotes = results.filter(r => r === "sitting").length;
-    const standingVotes = results.filter(r => r === "standing").length;
-
-    let finalPose;
-    if (sittingVotes > standingVotes) {
-        finalPose = "sitting";
-    } else if (standingVotes > sittingVotes) {
-        finalPose = "standing";
-    } else {
-        // Tie-breaker: use the most reliable method available
-        if (kneeBendResult) {
-            finalPose = kneeBendResult;
-        } else if (sideViewResult) {
-            finalPose = sideViewResult;
-        } else {
-            finalPose = "standing"; // Default fallback
-        }
-    }
-
-    console.log(`Pose classification - Side: ${sideViewResult}, Front: ${frontViewResult}, Knee: ${kneeBendResult}, Final: ${finalPose}`);
-    updatePostureDisplay(finalPose);
-    return finalPose;
-}
-
 function updatePostureDisplay(posture) {
     const postureDisplay = document.getElementById('posture-display');
     if (postureDisplay) {
@@ -323,9 +160,6 @@ function startFrameCapture() {
                 });
 
                 drawPose(poses);
-                if (poses.length > 0) {
-                    classifyPose(poses[0].keypoints);
-                }
             } catch (error) {
                 console.error('Error during MoveNet pose detection:', error);
             }
@@ -379,9 +213,6 @@ function stopCamera() {
     poseCtx.clearRect(0, 0, poseCanvas.width, poseCanvas.height);
     poseData.textContent = '';
     
-    // Reset posture display
-    updatePostureDisplay("unknown");
-    
     startBtn.disabled = false;
     stopBtn.disabled = true;
     cameraStatus.textContent = 'Camera stopped';
@@ -402,5 +233,4 @@ socket.on('disconnect', () => {
 
 document.addEventListener('DOMContentLoaded', () => {
     initializePoseDetection();
-    updatePostureDisplay("unknown");
 });
