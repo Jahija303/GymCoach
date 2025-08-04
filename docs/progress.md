@@ -73,3 +73,20 @@ current problems:
 - how can we classify an action based on movenet keypoints?
 - do we need to create a new model or is there a trained solution already?
 - can a model automatically recognize an action or do we have to manually make some similarity calculations?
+
+## 04.08.2025
+
+task: 230-recognize-a-pose-with-a-teachable-machine-model
+
+branstorming:
+- Autodetection of exercises does not make sense right now, we will manually select it. Autodetection would be too ambiguous and is not a priority.
+- The following solution from the [article](https://medium.com/@pawelkapica/using-pose-estimation-algorithms-to-build-a-simple-gym-training-aid-app-ef87b3d07f94) is not realistic. The biggest problem is the exercise tempo, and real-time video normalization (we need to make sure the footage of the profesional and the user is matched in size, duration and speed) which is quite a challenge.
+- The current idea is to have a selection of a few basic exercises and use MoveNet keypoints to check the users form. The form checking should be a multi-step process:
+1. Joint angles (primary form check)
+2. Angular velocities (movement quality)
+3. Joint relationships (kinetic chain alignment)
+4. Temporal patterns (movement phases)
+5. Stability metrics (consistency across repetitions)
+
+progress:
+- This idea will be scrapped, we are going for the manual joint angle calculations
