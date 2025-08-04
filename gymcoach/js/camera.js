@@ -1,5 +1,4 @@
-// Import MediaPipe modules
-import { FilesetResolver, PoseLandmarker } from 'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@latest';
+import { FilesetResolver, PoseLandmarker } from '@mediapipe/tasks-vision';
 
 const socket = window.io.connect("http://localhost:3000");
 const localVideo = document.getElementById('localVideo');
@@ -16,7 +15,6 @@ const FPS = 30;
 let intervalId = null;
 let poseLandmarker = null;
 let isModelLoaded = false;
-let runningMode = "VIDEO";
 let webcamRunning = false;
 
 // 1280 x 720 (16x9 aspect ratio)
@@ -27,12 +25,8 @@ async function initializePoseDetection() {
     try {
         poseStatus.textContent = 'Loading MediaPipe Pose Landmarker model...';
 
-        console.log('Using ES6 imported MediaPipe modules');
-        console.log('FilesetResolver:', typeof FilesetResolver);
-        console.log('PoseLandmarker:', typeof PoseLandmarker);
-
         const vision = await FilesetResolver.forVisionTasks(
-            "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@latest/wasm"
+            "/node_modules/@mediapipe/tasks-vision/wasm"
         );
 
         poseLandmarker = await PoseLandmarker.createFromOptions(vision, {
@@ -40,7 +34,7 @@ async function initializePoseDetection() {
                 modelAssetPath: "https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/1/pose_landmarker_lite.task",
                 delegate: "GPU"
             },
-            runningMode: runningMode,
+            runningMode: "VIDEO",
             numPoses: 1,
             minPoseDetectionConfidence: 0.5,
             minPosePresenceConfidence: 0.5,
@@ -76,7 +70,6 @@ function drawPoseLandmarks(results) {
     poseCtx.restore();
 }
 
-// Helper functions for drawing (implementing basic versions since MediaPipe drawing utils might not be directly available)
 function drawConnectors(ctx, landmarks, style) {
     ctx.strokeStyle = style.color;
     ctx.lineWidth = style.lineWidth;
@@ -107,7 +100,7 @@ function drawConnectors(ctx, landmarks, style) {
 
 function drawLandmarks(ctx, landmarks, style) {
     ctx.fillStyle = style.color;
-    
+
     landmarks.forEach((landmark, index) => {
         if (landmark.visibility > 0.5) {
             ctx.beginPath();
@@ -125,9 +118,7 @@ function drawLandmarks(ctx, landmarks, style) {
 
 function displayPoseData(results) {
     if (results.landmarks && results.landmarks.length > 0) {
-        const landmarks = results.landmarks[0]; // Get first pose
-        
-        // MediaPipe Pose Landmarker landmark names (33 total)
+        const landmarks = results.landmarks[0];
         const landmarkNames = [
             'nose', 'left_eye_inner', 'left_eye', 'left_eye_outer', 'right_eye_inner',
             'right_eye', 'right_eye_outer', 'left_ear', 'right_ear', 'mouth_left',
@@ -139,8 +130,6 @@ function displayPoseData(results) {
         ];
 
         let poseInfo = `MediaPipe Pose Landmarker Detection Results:\n`;
-        
-        // Calculate visible landmarks
         let visibleLandmarks = 0;
         landmarks.forEach(landmark => {
             if (landmark.visibility > 0.5) {
@@ -149,8 +138,6 @@ function displayPoseData(results) {
         });
 
         poseInfo += `Visible landmarks (>50%): ${visibleLandmarks}/${landmarks.length}\n\n`;
-        
-        // Add pose quality assessment
         if (visibleLandmarks >= 25) {
             poseInfo += `✅ High quality pose detection`;
         } else if (visibleLandmarks >= 20) {
@@ -159,22 +146,9 @@ function displayPoseData(results) {
             poseInfo += `❌ Low quality pose detection`;
         }
 
-        // Show world coordinates if available
-        if (results.worldLandmarks && results.worldLandmarks.length > 0) {
-            poseInfo += `\n\n3D World coordinates available: Yes`;
-        }
-        
         poseData.textContent = poseInfo;
     } else {
         poseData.textContent = 'No poses detected by MediaPipe Pose Landmarker';
-    }
-}
-
-function updatePostureDisplay(posture) {
-    const postureDisplay = document.getElementById('posture-display');
-    if (postureDisplay) {
-        postureDisplay.textContent = posture;
-        postureDisplay.className = posture; // Add CSS class for styling
     }
 }
 
@@ -184,7 +158,6 @@ function startFrameCapture() {
             try {
                 const startTimeMs = performance.now();
                 
-                // Detect poses using MediaPipe Pose Landmarker
                 const results = poseLandmarker.detectForVideo(localVideo, startTimeMs);
                 
                 drawPoseLandmarks(results);
@@ -269,7 +242,6 @@ socket.on('disconnect', () => {
 document.addEventListener('DOMContentLoaded', () => {
     poseStatus.textContent = 'Initializing MediaPipe Pose Landmarker...';
     console.log('DOM loaded, initializing MediaPipe...');
-    
-    // Initialize immediately since imports are already resolved
+
     initializePoseDetection();
 });
