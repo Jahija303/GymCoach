@@ -1,4 +1,7 @@
-const socket = io.connect("http://localhost:3000");
+// Import MediaPipe modules
+import { FilesetResolver, PoseLandmarker } from 'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@latest';
+
+const socket = window.io.connect("http://localhost:3000");
 const localVideo = document.getElementById('localVideo');
 const poseCanvas = document.getElementById('poseCanvas');
 const poseCtx = poseCanvas.getContext('2d');
@@ -11,8 +14,10 @@ const poseData = document.getElementById('pose-data');
 let stream = null;
 const FPS = 30;
 let intervalId = null;
-let poseDetector = null;
+let poseLandmarker = null;
 let isModelLoaded = false;
+let runningMode = "VIDEO";
+let webcamRunning = false;
 
 // 1280 x 720 (16x9 aspect ratio)
 poseCanvas.width = 1280;
@@ -20,123 +25,148 @@ poseCanvas.height = 720;
 
 async function initializePoseDetection() {
     try {
-        poseStatus.textContent = 'Loading MoveNet model...';
+        poseStatus.textContent = 'Loading MediaPipe Pose Landmarker model...';
 
-        const modelType = poseDetection.movenet.modelType.SINGLEPOSE_LIGHTNING;
-        const detectorConfig = {
-            modelType: modelType,
-            enableSmoothing: true, // Smooth predictions across frames
-            enableSegmentation: false, // Set to true if you need segmentation masks
-            minPoseScore: 0.25, // Minimum confidence for pose detection
-        };
+        console.log('Using ES6 imported MediaPipe modules');
+        console.log('FilesetResolver:', typeof FilesetResolver);
+        console.log('PoseLandmarker:', typeof PoseLandmarker);
 
-        poseDetector = await poseDetection.createDetector(
-            poseDetection.SupportedModels.MoveNet, 
-            detectorConfig
+        const vision = await FilesetResolver.forVisionTasks(
+            "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@latest/wasm"
         );
 
+        poseLandmarker = await PoseLandmarker.createFromOptions(vision, {
+            baseOptions: {
+                modelAssetPath: "https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/1/pose_landmarker_lite.task",
+                delegate: "GPU"
+            },
+            runningMode: runningMode,
+            numPoses: 1,
+            minPoseDetectionConfidence: 0.5,
+            minPosePresenceConfidence: 0.5,
+            minTrackingConfidence: 0.5
+        });
+
         isModelLoaded = true;
-        poseStatus.textContent = `MoveNet ${modelType} model loaded successfully!`;
+        poseStatus.textContent = 'MediaPipe Pose Landmarker model loaded successfully!';
     } catch (error) {
-        poseStatus.textContent = 'Error loading MoveNet model: ' + error.message;
+        poseStatus.textContent = 'Error loading MediaPipe Pose Landmarker model: ' + error.message;
+        console.error('Error:', error);
     }
 }
 
-function drawPose(poses) {
+function drawPoseLandmarks(results) {
+    poseCtx.save();
     poseCtx.clearRect(0, 0, poseCanvas.width, poseCanvas.height);
     
-    if (poses.length > 0) {
-        const pose = poses[0];
-
-        // MoveNet keypoint connections (skeleton)
-        const connections = [
-            [5, 6], [5, 7], [7, 9], [6, 8], [8, 10], // arms
-            [5, 11], [6, 12], [11, 12], // torso
-            [11, 13], [13, 15], [12, 14], [14, 16], // legs
-            [0, 1], [0, 2], [1, 3], [2, 4] // face
-        ];
-
-        // Draw skeleton connections first, behind keypoints
-        connections.forEach(([i, j]) => {
-            const kp1 = pose.keypoints[i];
-            const kp2 = pose.keypoints[j];
-
-            // Only draw if both keypoints are confident
-            if (kp1.score > 0.25 && kp2.score > 0.25) {
-                poseCtx.beginPath();
-                poseCtx.moveTo(kp1.x, kp1.y);
-                poseCtx.lineTo(kp2.x, kp2.y);
-                poseCtx.strokeStyle = 'rgba(0, 128, 255, 0.8)';
-                poseCtx.lineWidth = 3;
-                poseCtx.stroke();
-            }
-        });
-
-        // Draw keypoints on top
-        pose.keypoints.forEach((keypoint, index) => {
-            if (keypoint.score > 0.25) {
-                // Draw keypoint circle
-                poseCtx.beginPath();
-                poseCtx.arc(keypoint.x, keypoint.y, 6, 0, 2 * Math.PI);
-
-                if (index < 5) { // Face keypoints
-                    poseCtx.fillStyle = 'red';
-                } else if (index < 11) { // Upper body
-                    poseCtx.fillStyle = 'orange';
-                } else { // Lower body
-                    poseCtx.fillStyle = 'blue';
-                }
-                poseCtx.fill();
-
-                poseCtx.fillStyle = 'white';
-                poseCtx.font = '12px Arial';
-                poseCtx.strokeStyle = 'black';
-                poseCtx.lineWidth = 3;
-                poseCtx.strokeText(keypoint.name || `KP${index}`, keypoint.x + 8, keypoint.y - 8);
-                poseCtx.fillText(keypoint.name || `KP${index}`, keypoint.x + 8, keypoint.y - 8);
-            }
-        });
-
-        displayPoseData(poses);
+    if (results.landmarks && results.landmarks.length > 0) {
+        for (const landmarks of results.landmarks) {
+            drawConnectors(poseCtx, landmarks, {
+                color: "#00FF00",
+                lineWidth: 4,
+            });
+            drawLandmarks(poseCtx, landmarks, {
+                color: "#FF0000", 
+                lineWidth: 2,
+                radius: 6,
+            });
+        }
+        displayPoseData(results);
     }
+    poseCtx.restore();
 }
 
-function displayPoseData(poses) {
-    if (poses.length > 0) {
-        const pose = poses[0];
+// Helper functions for drawing (implementing basic versions since MediaPipe drawing utils might not be directly available)
+function drawConnectors(ctx, landmarks, style) {
+    ctx.strokeStyle = style.color;
+    ctx.lineWidth = style.lineWidth;
+    
+    // Define pose connections based on MediaPipe pose model
+    const poseConnections = [
+        [11, 12], [11, 13], [13, 15], [15, 17], [15, 19], [15, 21], [17, 19], // Left arm
+        [12, 14], [14, 16], [16, 18], [16, 20], [16, 22], [18, 20], // Right arm
+        [11, 23], [12, 24], [23, 24], // Torso
+        [23, 25], [25, 27], [27, 29], [27, 31], [29, 31], // Left leg
+        [24, 26], [26, 28], [28, 30], [28, 32], [30, 32], // Right leg
+        [0, 1], [1, 2], [2, 3], [0, 4], [4, 5], [5, 6], // Face
+        [0, 7], [0, 8], [9, 10] // Face connections
+    ];
+    
+    poseConnections.forEach(([i, j]) => {
+        const landmark1 = landmarks[i];
+        const landmark2 = landmarks[j];
+        
+        if (landmark1 && landmark2 && landmark1.visibility > 0.5 && landmark2.visibility > 0.5) {
+            ctx.beginPath();
+            ctx.moveTo(landmark1.x * poseCanvas.width, landmark1.y * poseCanvas.height);
+            ctx.lineTo(landmark2.x * poseCanvas.width, landmark2.y * poseCanvas.height);
+            ctx.stroke();
+        }
+    });
+}
 
-        const keypointNames = [
-            'nose', 'left_eye', 'right_eye', 'left_ear', 'right_ear',
-            'left_shoulder', 'right_shoulder', 'left_elbow', 'right_elbow',
-            'left_wrist', 'right_wrist', 'left_hip', 'right_hip',
-            'left_knee', 'right_knee', 'left_ankle', 'right_ankle'
+function drawLandmarks(ctx, landmarks, style) {
+    ctx.fillStyle = style.color;
+    
+    landmarks.forEach((landmark, index) => {
+        if (landmark.visibility > 0.5) {
+            ctx.beginPath();
+            ctx.arc(
+                landmark.x * poseCanvas.width, 
+                landmark.y * poseCanvas.height, 
+                style.radius, 
+                0, 
+                2 * Math.PI
+            );
+            ctx.fill();
+        }
+    });
+}
+
+function displayPoseData(results) {
+    if (results.landmarks && results.landmarks.length > 0) {
+        const landmarks = results.landmarks[0]; // Get first pose
+        
+        // MediaPipe Pose Landmarker landmark names (33 total)
+        const landmarkNames = [
+            'nose', 'left_eye_inner', 'left_eye', 'left_eye_outer', 'right_eye_inner',
+            'right_eye', 'right_eye_outer', 'left_ear', 'right_ear', 'mouth_left',
+            'mouth_right', 'left_shoulder', 'right_shoulder', 'left_elbow', 'right_elbow',
+            'left_wrist', 'right_wrist', 'left_pinky', 'right_pinky', 'left_index',
+            'right_index', 'left_thumb', 'right_thumb', 'left_hip', 'right_hip',
+            'left_knee', 'right_knee', 'left_ankle', 'right_ankle', 'left_heel',
+            'right_heel', 'left_foot_index', 'right_foot_index'
         ];
 
-        let poseInfo = `MoveNet Detection Results:\n`;
-        poseInfo += `Overall Pose Score: ${(pose.score * 100).toFixed(1)}%\n\n`;
-        poseInfo += `Confident keypoints (>25%):\n`;
-
-        let confidentKeypoints = 0;
-        pose.keypoints.forEach((keypoint, index) => {
-            if (keypoint.score > 0.25) {
-                confidentKeypoints++;
+        let poseInfo = `MediaPipe Pose Landmarker Detection Results:\n`;
+        
+        // Calculate visible landmarks
+        let visibleLandmarks = 0;
+        landmarks.forEach(landmark => {
+            if (landmark.visibility > 0.5) {
+                visibleLandmarks++;
             }
         });
 
-        poseInfo += `\nTotal confident keypoints: ${confidentKeypoints}/17`;
+        poseInfo += `Visible landmarks (>50%): ${visibleLandmarks}/${landmarks.length}\n\n`;
         
         // Add pose quality assessment
-        if (confidentKeypoints >= 12) {
-            poseInfo += `\n✅ High quality pose detection`;
-        } else if (confidentKeypoints >= 8) {
-            poseInfo += `\n⚠️ Medium quality pose detection`;
+        if (visibleLandmarks >= 25) {
+            poseInfo += `✅ High quality pose detection`;
+        } else if (visibleLandmarks >= 20) {
+            poseInfo += `⚠️ Medium quality pose detection`;
         } else {
-            poseInfo += `\n❌ Low quality pose detection`;
+            poseInfo += `❌ Low quality pose detection`;
+        }
+
+        // Show world coordinates if available
+        if (results.worldLandmarks && results.worldLandmarks.length > 0) {
+            poseInfo += `\n\n3D World coordinates available: Yes`;
         }
         
         poseData.textContent = poseInfo;
     } else {
-        poseData.textContent = 'No poses detected by MoveNet';
+        poseData.textContent = 'No poses detected by MediaPipe Pose Landmarker';
     }
 }
 
@@ -150,18 +180,16 @@ function updatePostureDisplay(posture) {
 
 function startFrameCapture() {
     intervalId = setInterval(async () => {
-        if (stream && localVideo.videoWidth > 0 && isModelLoaded && poseDetector) {
+        if (stream && localVideo.videoWidth > 0 && isModelLoaded && poseLandmarker && webcamRunning) {
             try {
-                // MoveNet works best with the video element directly
-                const poses = await poseDetector.estimatePoses(localVideo, {
-                    maxPoses: 1, // Single pose detection
-                    flipHorizontal: false, // Mirror image
-                    scoreThreshold: 0.25 // Minimum keypoint confidence
-                });
-
-                drawPose(poses);
+                const startTimeMs = performance.now();
+                
+                // Detect poses using MediaPipe Pose Landmarker
+                const results = poseLandmarker.detectForVideo(localVideo, startTimeMs);
+                
+                drawPoseLandmarks(results);
             } catch (error) {
-                console.error('Error during MoveNet pose detection:', error);
+                console.error('Error during MediaPipe pose detection:', error);
             }
         }
     }, 1000 / FPS);
@@ -184,18 +212,25 @@ async function startCamera() {
         });
 
         localVideo.srcObject = stream;
-
-        startFrameCapture();
+        
+        // Wait for video to be ready
+        localVideo.addEventListener('loadeddata', () => {
+            webcamRunning = true;
+            startFrameCapture();
+        });
 
         startBtn.disabled = true;
         stopBtn.disabled = false;
         cameraStatus.textContent = 'Camera started with pose detection';
     } catch (error) {
         cameraStatus.textContent = 'Error accessing camera: ' + error.message;
+        console.error('Camera error:', error);
     }
 }
 
 function stopCamera() {
+    webcamRunning = false;
+    
     if (stream) {
         // Stop all tracks
         stream.getTracks().forEach(track => track.stop());
@@ -232,5 +267,9 @@ socket.on('disconnect', () => {
 });
 
 document.addEventListener('DOMContentLoaded', () => {
+    poseStatus.textContent = 'Initializing MediaPipe Pose Landmarker...';
+    console.log('DOM loaded, initializing MediaPipe...');
+    
+    // Initialize immediately since imports are already resolved
     initializePoseDetection();
 });
