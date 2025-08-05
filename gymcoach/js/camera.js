@@ -9,6 +9,8 @@ const stopBtn = document.getElementById('stopBtn');
 const cameraStatus = document.getElementById('status');
 const poseStatus = document.getElementById('pose-status');
 const poseData = document.getElementById('pose-data');
+const exerciseSelect = document.getElementById('exerciseSelect');
+const squatStatus = document.getElementById('squat-status');
 
 let stream = null;
 const FPS = 30;
@@ -16,6 +18,8 @@ let intervalId = null;
 let poseLandmarker = null;
 let isModelLoaded = false;
 let webcamRunning = false;
+let currentExercise = null;
+let currentSquatState = null; // start, apex, end
 
 // 1280 x 720 (16x9 aspect ratio)
 poseCanvas.width = 1280;
@@ -164,9 +168,17 @@ function startFrameCapture() {
                 drawPoseLandmarks(results);
                 
                 if (frameCount % 9 === 0) {
-                    handsPosition(results);
-                    legsPosition(results);
-                    bodyPosition(results);
+                    switch (currentExercise) {
+                        case 'squat':
+                            validSquat(results);
+                            break;
+                        case 'pushup':
+                            validPushup(results);
+                            break;
+                        case 'plank':
+                            validPlank(results);
+                            break;
+                    }
                 }
                 
                 frameCount++;
@@ -235,7 +247,10 @@ function stopCamera() {
     cameraStatus.textContent = 'Camera stopped';
 }
 
-function handsPosition(results){
+function armAngles(results){
+    let leftArmAngle = null;
+    let rightArmAngle = null;
+
     if (results.landmarks && results.landmarks.length > 0) {
         const landmarks = results.landmarks[0];
         
@@ -251,19 +266,25 @@ function handsPosition(results){
 
         // Calculate left arm angle if all points are visible
         if (leftShoulder.visibility > 0.5 && leftElbow.visibility > 0.5 && leftWrist.visibility > 0.5) {
-            const leftArmAngle = calculateAngle(leftShoulder, leftElbow, leftWrist);
-            console.log(`Left arm angle: ${leftArmAngle.toFixed(2)}°`);
+            leftArmAngle = calculateAngle(leftShoulder, leftElbow, leftWrist);
         }
         
         // Calculate right arm angle if all points are visible
         if (rightShoulder.visibility > 0.5 && rightElbow.visibility > 0.5 && rightWrist.visibility > 0.5) {
-            const rightArmAngle = calculateAngle(rightShoulder, rightElbow, rightWrist);
-            console.log(`Right arm angle: ${rightArmAngle.toFixed(2)}°`);
+            rightArmAngle = calculateAngle(rightShoulder, rightElbow, rightWrist);
         }
     }
+
+    return {
+        leftArmAngle: leftArmAngle,
+        rightArmAngle: rightArmAngle
+    };
 }
 
-function legsPosition(results) {
+function legAngles(results) {
+    let leftLegAngle = null;
+    let rightLegAngle = null;
+
     if (results.landmarks && results.landmarks.length > 0) {
         const landmarks = results.landmarks[0];
         const leftHip = landmarks[23];
@@ -272,22 +293,28 @@ function legsPosition(results) {
         const rightHip = landmarks[24];
         const rightKnee = landmarks[26];
         const rightAnkle = landmarks[28];
-
+        
         // Calculate left leg angle if all points are visible
         if (leftHip.visibility > 0.5 && leftKnee.visibility > 0.5 && leftAnkle.visibility > 0.5) {
-            const leftLegAngle = calculateAngle(leftHip, leftKnee, leftAnkle);
-            console.log(`Left leg angle: ${leftLegAngle.toFixed(2)}°`);
+            leftLegAngle = calculateAngle(leftHip, leftKnee, leftAnkle);
         }
 
         // Calculate right leg angle if all points are visible
         if (rightHip.visibility > 0.5 && rightKnee.visibility > 0.5 && rightAnkle.visibility > 0.5) {
-            const rightLegAngle = calculateAngle(rightHip, rightKnee, rightAnkle);
-            console.log(`Right leg angle: ${rightLegAngle.toFixed(2)}°`);
+            rightLegAngle = calculateAngle(rightHip, rightKnee, rightAnkle);
         }
     }
+
+    return {
+        leftLegAngle: leftLegAngle,
+        rightLegAngle: rightLegAngle
+    };
 }
 
-function bodyPosition(results) {
+function hipAngles(results) {
+    let leftHipAngle = null;
+    let rightHipAngle = null;
+
     if (results.landmarks && results.landmarks.length > 0) {
         const landmarks = results.landmarks[0];
         const leftShoulder = landmarks[11];
@@ -300,16 +327,72 @@ function bodyPosition(results) {
         // Calculate body angle if all points are visible
         // Left side angle (shoulder-hip-knee)
         if (leftShoulder.visibility > 0.5 && leftHip.visibility > 0.5 && leftKnee.visibility > 0.5) {
-            const leftBodyAngle = calculateAngle(leftShoulder, leftHip, leftKnee);
-            console.log(`Left body angle: ${leftBodyAngle.toFixed(2)}°`);
+            leftHipAngle = calculateAngle(leftShoulder, leftHip, leftKnee);
         }
 
         // Right side angle (shoulder-hip-knee)
         if (rightShoulder.visibility > 0.5 && rightHip.visibility > 0.5 && rightKnee.visibility > 0.5) {
-            const rightBodyAngle = calculateAngle(rightShoulder, rightHip, rightKnee);
-            console.log(`Right body angle: ${rightBodyAngle.toFixed(2)}°`);
+            rightHipAngle = calculateAngle(rightShoulder, rightHip, rightKnee);
         }
     }
+
+    return {
+        leftHipAngle: leftHipAngle,
+        rightHipAngle: rightHipAngle
+    };
+}
+
+function updateSquatState(legAngle, hipAngle) {
+    const LEG_SQUAT_THRESHOLD = 120;    // knee angle for squat detection
+    const HIP_SQUAT_THRESHOLD = 120;    // hip angle for squat detection
+    const LEG_STANDING_THRESHOLD = 160; // knee angle for standing
+    const HIP_STANDING_THRESHOLD = 160; // hip angle for standing
+    
+    const isSquatting = legAngle < LEG_SQUAT_THRESHOLD && hipAngle < HIP_SQUAT_THRESHOLD;
+    const isStanding = legAngle > LEG_STANDING_THRESHOLD && hipAngle > HIP_STANDING_THRESHOLD;
+    
+    if (isSquatting) {
+        currentSquatState = 'squat';
+        console.log(`Squat detected - Leg: ${legAngle.toFixed(1)}°, Hip: ${hipAngle.toFixed(1)}°`);
+        squatStatus.className = 'status squat-status squat';
+        squatStatus.textContent = `Squat`;
+    } else if (isStanding) {
+        currentSquatState = 'standing';
+        console.log(`Standing detected - Leg: ${legAngle.toFixed(1)}°, Hip: ${hipAngle.toFixed(1)}°`);
+        squatStatus.className = 'status squat-status standing';
+        squatStatus.textContent = `Standing`;
+    } else {
+        squatStatus.className = 'status squat-status transition';
+        squatStatus.textContent = `Transition`;
+    }
+}
+
+function validSquat(results) {
+    console.log("exercise: squat");
+    if (results.landmarks && results.landmarks.length > 0) {
+        const legAnglesResult = legAngles(results);
+        const leftLegAngle = legAnglesResult.leftLegAngle;
+        const rightLegAngle = legAnglesResult.rightLegAngle;
+        const hipAnglesResult = hipAngles(results);
+        const leftHipAngle = hipAnglesResult.leftHipAngle;
+        const rightHipAngle = hipAnglesResult.rightHipAngle;
+
+        // we need to be confident that at least one side is visible before checking the form correctness
+        if (leftLegAngle !== null && leftHipAngle !== null) {
+            updateSquatState(leftLegAngle, leftHipAngle);
+        }
+
+        // if (rightLegAngle !== null && rightHipAngle !== null) {
+        //     updateSquatState(rightLegAngle, rightHipAngle);
+        // }
+    }
+}
+
+function validPushup(results) {
+    console.log("pushup")
+}
+function validPlank(results) {
+    console.log("plank")
 }
 
 function calculateAngle(point1, vertex, point2) {
@@ -335,6 +418,10 @@ function calculateAngle(point1, vertex, point2) {
 
 startBtn.addEventListener('click', startCamera);
 stopBtn.addEventListener('click', stopCamera);
+exerciseSelect.addEventListener('change', (event) => {
+    currentExercise = event.target.value;
+});
+
 
 socket.on('connect', () => {
     console.log('Connected to server');
