@@ -105,3 +105,13 @@ brainstorming:
 - First, we should have the user select an exercise so we can decide which ruleset to use. Second, the model should recognise the starting position, the apex, and the ending postion (probably same as the starting).
 - After we can confidently recongise the start and apex positions, we can easily count the reps the user did.
 - To expand this, we need to then figure out a way to validate the movement between the start and the apex of the exercise. We need to define a detailed ruleset and movement pattern which the user must follow for the exercise to be valid.
+
+progress:
+- Figuring out a way to determine the current squat position based on the joint angles
+- Refcatoring the code functions a little bit to make it easier to get the joint angles
+- Made the calculations for the three squat states, standing, apex and transitioning
+
+todo:
+- Separate camera.js into multiple files/classes
+- Create a class only responsible for calculating joint angles, and determing if the calculations can be done at all based on visibility and which sections to consider based on users position (front/side)
+- Do the same for plank and pushup as we did for squat
