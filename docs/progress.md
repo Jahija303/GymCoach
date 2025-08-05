@@ -95,3 +95,13 @@ progress:
 
 problems:
 - We retrieve keypoints of the shoulders, hips, etc., but we do not know if a persons posture is correct, or if the person has bent shoulders, this could be a big problem for verifying the quality of an exercise or even verifying the persons posture.
+
+## 05.08.2025
+
+task: 231-basic-exercise-form-calculation
+
+brainstorming:
+- How can we get over the hurdle that a camera cannot simply detect the spinal curvature of the person doing the exercise, which in turn might give a false positive.
+- First, we should have the user select an exercise so we can decide which ruleset to use. Second, the model should recognise the starting position, the apex, and the ending postion (probably same as the starting).
+- After we can confidently recongise the start and apex positions, we can easily count the reps the user did.
+- To expand this, we need to then figure out a way to validate the movement between the start and the apex of the exercise. We need to define a detailed ruleset and movement pattern which the user must follow for the exercise to be valid.

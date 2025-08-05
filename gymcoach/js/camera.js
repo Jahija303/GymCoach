@@ -248,7 +248,6 @@ function handsPosition(results){
         const rightShoulder = landmarks[12];
         const rightElbow = landmarks[14];
         const rightWrist = landmarks[16];
-        
 
         // Calculate left arm angle if all points are visible
         if (leftShoulder.visibility > 0.5 && leftElbow.visibility > 0.5 && leftWrist.visibility > 0.5) {
@@ -313,8 +312,6 @@ function bodyPosition(results) {
     }
 }
 
-
-
 function calculateAngle(point1, vertex, point2) {
     const vector1 = {
         x: point1.x - vertex.x,
@@ -335,7 +332,6 @@ function calculateAngle(point1, vertex, point2) {
     
     return angleDegrees;
 }
-        
 
 startBtn.addEventListener('click', startCamera);
 stopBtn.addEventListener('click', stopCamera);
