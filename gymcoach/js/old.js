@@ -1,13 +1,10 @@
 import { FilesetResolver, PoseLandmarker } from '@mediapipe/tasks-vision';
 
-const socket = window.io.connect("http://localhost:3000");
 const localVideo = document.getElementById('localVideo');
 const poseCanvas = document.getElementById('poseCanvas');
 const poseCtx = poseCanvas.getContext('2d');
 const startBtn = document.getElementById('startBtn');
 const stopBtn = document.getElementById('stopBtn');
-const cameraStatus = document.getElementById('status');
-const poseStatus = document.getElementById('pose-status');
 const poseData = document.getElementById('pose-data');
 const exerciseSelect = document.getElementById('exerciseSelect');
 const squatStatus = document.getElementById('squat-status');
@@ -27,8 +24,6 @@ poseCanvas.height = 720;
 
 async function initializePoseDetection() {
     try {
-        poseStatus.textContent = 'Loading MediaPipe Pose Landmarker model...';
-
         const vision = await FilesetResolver.forVisionTasks(
             "/node_modules/@mediapipe/tasks-vision/wasm"
         );
@@ -46,9 +41,7 @@ async function initializePoseDetection() {
         });
 
         isModelLoaded = true;
-        poseStatus.textContent = 'MediaPipe Pose Landmarker model loaded successfully!';
     } catch (error) {
-        poseStatus.textContent = 'Error loading MediaPipe Pose Landmarker model: ' + error.message;
         console.error('Error:', error);
     }
 }
@@ -215,9 +208,7 @@ async function startCamera() {
 
         startBtn.disabled = true;
         stopBtn.disabled = false;
-        cameraStatus.textContent = 'Camera started with pose detection';
     } catch (error) {
-        cameraStatus.textContent = 'Error accessing camera: ' + error.message;
         console.error('Camera error:', error);
     }
 }
@@ -244,7 +235,6 @@ function stopCamera() {
     
     startBtn.disabled = false;
     stopBtn.disabled = true;
-    cameraStatus.textContent = 'Camera stopped';
 }
 
 function armAngles(results){
@@ -404,7 +394,7 @@ function calculateAngle(point1, vertex, point2) {
         x: point2.x - vertex.x,
         y: point2.y - vertex.y
     };
-    
+
     const dotProduct = vector1.x * vector2.x + vector1.y * vector2.y;
     const magnitude1 = Math.sqrt(vector1.x * vector1.x + vector1.y * vector1.y);
     const magnitude2 = Math.sqrt(vector2.x * vector2.x + vector2.y * vector2.y);
@@ -418,24 +408,11 @@ function calculateAngle(point1, vertex, point2) {
 
 startBtn.addEventListener('click', startCamera);
 stopBtn.addEventListener('click', stopCamera);
+
 exerciseSelect.addEventListener('change', (event) => {
     currentExercise = event.target.value;
 });
 
-
-socket.on('connect', () => {
-    console.log('Connected to server');
-    cameraStatus.textContent = 'Connected to server';
-});
-
-socket.on('disconnect', () => {
-    console.log('Disconnected from server');
-    cameraStatus.textContent = 'Disconnected from server';
-});
-
 document.addEventListener('DOMContentLoaded', () => {
-    poseStatus.textContent = 'Initializing MediaPipe Pose Landmarker...';
-    console.log('DOM loaded, initializing MediaPipe...');
-
     initializePoseDetection();
 });

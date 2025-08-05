@@ -115,3 +115,7 @@ todo:
 - Separate camera.js into multiple files/classes
 - Create a class only responsible for calculating joint angles, and determing if the calculations can be done at all based on visibility and which sections to consider based on users position (front/side)
 - Do the same for plank and pushup as we did for squat
+
+progress 02:
+- Started refactoring the code so we can organise it better. Separated the methods into multiple files so we can have the squat as an excerise in a specialized class, as well as all angle calculations.
+- When changing exercises, assign the new class instance to the new exercise and use it and it's parent class (exercise) for validating the correctness and form
