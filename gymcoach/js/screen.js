@@ -1,5 +1,7 @@
 import { drawPoseLandmarks, initializePoseDetection, CANVAS_HEIGHT, CANVAS_WIDTH } from './pose.js';
 
+import { Squat } from './exercise/squat.js';
+
 const localVideo = document.getElementById('localVideo');
 const startBtn = document.getElementById('startBtn');
 const stopBtn = document.getElementById('stopBtn');
@@ -21,23 +23,13 @@ export function startFrameCapture() {
             try {
                 const startTimeMs = performance.now();
                 const results = poseLandmarker.detectForVideo(localVideo, startTimeMs);
-                
+
                 drawPoseLandmarks(results);
-                
-                // if (frameCount % 9 === 0) {
-                //     switch (currentExercise) {
-                //         case 'squat':
-                //             validSquat(results);
-                //             break;
-                //         case 'pushup':
-                //             validPushup(results);
-                //             break;
-                //         case 'plank':
-                //             validPlank(results);
-                //             break;
-                //     }
-                // }
-                
+
+                if (frameCount % 9 === 0 && currentExercise) {
+                    currentExercise.validate(results);
+                }
+
                 frameCount++;
             } catch (error) {
                 console.error('Error during MediaPipe pose detection:', error);
@@ -92,7 +84,7 @@ function stopCamera() {
     localVideo.srcObject = null;
     
     // Clear pose canvas
-    poseCtx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+    document.getElementById('poseCanvas').getContext('2d').clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
     poseData.textContent = '';
     
     startBtn.disabled = false;
@@ -104,15 +96,24 @@ stopBtn.addEventListener('click', stopCamera);
 
 // Exercise selection event listener
 exerciseSelect.addEventListener('change', (event) => {
-    currentExercise = event.target.value;
-    console.log('Selected exercise:', currentExercise);
-    // TODO: Instantiate the exercise class based on selection
+    switch (event.target.value) {
+        case 'squat':
+            console.log('Squat selected');
+            currentExercise = new Squat();
+            break;
+        case 'pushup':
+            console.log('Pushup selected');
+            break;
+        case 'plank':
+            console.log('Plank selected');
+            break;
+    }
 });
 
 document.addEventListener('DOMContentLoaded', () => {
     initializePoseDetection().then((landmarker) => {
         poseLandmarker = landmarker;
-        console.log('BlazePose initialized:', poseLandmarker);
+        console.log('BlazePose initialized');
     }).catch((error) => {
         console.error('Error initializing BlazePose:', error);
     });

@@ -146,23 +146,23 @@ button:disabled {
   text-align: left;
 }
 
-.squat-status {
+.exercise-status {
   background-color: white;
   border-color: lightgray;
   color: black;
 }
 
-.squat-status.squat {
+.exercise-status.apex {
     background-color: #e8f5e8;
     border-color: #4caf50;
 }
 
-.squat-status.standing {
+.exercise-status.start {
     background-color: #f0f8ff;
     border-color: #2196f3;
 }
 
-.squat-status.transition {
+.exercise-status.transition {
     background-color: #fff8dc;
     border-color: #ff9800;
 }
