@@ -119,3 +119,14 @@ todo:
 progress 02:
 - Started refactoring the code so we can organise it better. Separated the methods into multiple files so we can have the squat as an excerise in a specialized class, as well as all angle calculations.
 - When changing exercises, assign the new class instance to the new exercise and use it and it's parent class (exercise) for validating the correctness and form
+
+## 06.08.2025
+
+task: 231-basic-exercise-form-calculation
+
+brainstorming:
+- We should have the exercise class detect where the user is facing (front/side). Based on the users direction, we should apply different rules for exercise form validation. We won't take into account any other direction other than front/side, for the moment.
+- The squat class should now use different predefined rules based on the users direction.
+
+todo:
+- Analyze the exercise and understand what it means to do the exercise with a proper form and then try to translate this into code.
