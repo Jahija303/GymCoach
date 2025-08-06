@@ -125,8 +125,9 @@ export class Exercise {
         }
 
         const landmarks = results.landmarks[0];
-        let sideIndicators = 0;
         let frontIndicators = 0;
+        let leftSideIndicators = 0;
+        let rightSideIndicators = 0;
 
         const leftShoulder = landmarks[11];
         const rightShoulder = landmarks[12];
@@ -134,12 +135,25 @@ export class Exercise {
         if (leftShoulder?.visibility > 0.5 && rightShoulder?.visibility > 0.5) {
             const shoulderDistance = Math.abs(leftShoulder.x - rightShoulder.x);
             if (shoulderDistance < 0.08) {
-                sideIndicators += 2;
+                if (leftShoulder.visibility > rightShoulder.visibility) {
+                    leftSideIndicators += 2;
+                } else if (rightShoulder.visibility > leftShoulder.visibility) {
+                    rightSideIndicators += 2;
+                } else {
+                    // If visibility is equal, use x position (left shoulder should be on left side of screen for left side view)
+                    if (leftShoulder.x < rightShoulder.x) {
+                        leftSideIndicators += 2;
+                    } else {
+                        rightSideIndicators += 2;
+                    }
+                }
             } else if (shoulderDistance > 0.18) {
                 frontIndicators += 2;
             }
-        } else if (leftShoulder?.visibility > 0.5 || rightShoulder?.visibility > 0.5) {
-            sideIndicators += 1;
+        } else if (leftShoulder?.visibility > 0.5) {
+            leftSideIndicators += 1;
+        } else if (rightShoulder?.visibility > 0.5) {
+            rightSideIndicators += 1;
         }
 
         const leftHip = landmarks[23];
@@ -148,34 +162,45 @@ export class Exercise {
         if (leftHip?.visibility > 0.5 && rightHip?.visibility > 0.5) {
             const hipDistance = Math.abs(leftHip.x - rightHip.x);
             if (hipDistance < 0.06) {
-                sideIndicators += 1;
+                // Determine which side based on visibility and position
+                if (leftHip.visibility > rightHip.visibility) {
+                    leftSideIndicators += 1;
+                } else if (rightHip.visibility > leftHip.visibility) {
+                    rightSideIndicators += 1;
+                } else {
+                    // If visibility is equal, use x position
+                    if (leftHip.x < rightHip.x) {
+                        leftSideIndicators += 1;
+                    } else {
+                        rightSideIndicators += 1;
+                    }
+                }
             } else if (hipDistance > 0.15) {
                 frontIndicators += 1;
             }
-        } else if (leftHip?.visibility > 0.5 || rightHip?.visibility > 0.5) {
-            sideIndicators += 1;
+        } else if (leftHip?.visibility > 0.5) {
+            leftSideIndicators += 1;
+        } else if (rightHip?.visibility > 0.5) {
+            rightSideIndicators += 1;
         }
 
-        const leftEar = landmarks[7];
-        const rightEar = landmarks[8];
-        const visibleEars = (leftEar?.visibility > 0.5 ? 1 : 0) + (rightEar?.visibility > 0.5 ? 1 : 0);
-        
-        if (visibleEars === 1) {
-            sideIndicators += 1;
-        } else if (visibleEars === 2) {
-            const earDistance = Math.abs(leftEar.x - rightEar.x);
-            if (earDistance > 0.12) {
-                frontIndicators += 1;
-            }
-        }
-
-        if (sideIndicators + frontIndicators === 0) {
+        const totalSideIndicators = leftSideIndicators + rightSideIndicators;
+        console.log("total side indicators: " + totalSideIndicators);
+        console.log("front indicators: " + frontIndicators);
+        if (totalSideIndicators + frontIndicators === 0) {
             return 'unknown';
         }
         
-        if (sideIndicators > frontIndicators) {
-            return 'side';
-        } else if (frontIndicators > sideIndicators) {
+        if (totalSideIndicators > frontIndicators) {
+            // Determine if it's left side or right side
+            if (leftSideIndicators > rightSideIndicators) {
+                return 'left-side';
+            } else if (rightSideIndicators > leftSideIndicators) {
+                return 'right-side';
+            } else {
+                return 'unknown';
+            }
+        } else if (frontIndicators > totalSideIndicators) {
             return 'front';
         } else {
             return 'unclear';

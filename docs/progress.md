@@ -130,3 +130,4 @@ brainstorming:
 
 todo:
 - Analyze the exercise and understand what it means to do the exercise with a proper form and then try to translate this into code.
+- Optimize the body pose calculations
