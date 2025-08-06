@@ -43,6 +43,8 @@ export class Squat extends Exercise {
             const leftHipAngle = hipAnglesResult.leftHipAngle;
             const rightHipAngle = hipAnglesResult.rightHipAngle;
 
+            console.log(this.userDirection(results));
+
             // we need to be confident that at least one side is visible before checking the form correctness
             if (leftLegAngle !== null && leftHipAngle !== null) {
                 this.updateSquatState(leftLegAngle, leftHipAngle);

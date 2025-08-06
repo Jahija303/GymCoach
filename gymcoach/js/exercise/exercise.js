@@ -118,4 +118,67 @@ export class Exercise {
             rightHipAngle: rightHipAngle
         };
     }
+
+    userDirection(results) {
+        if (!results.landmarks || results.landmarks.length === 0) {
+            return 'unknown';
+        }
+
+        const landmarks = results.landmarks[0];
+        let sideIndicators = 0;
+        let frontIndicators = 0;
+
+        const leftShoulder = landmarks[11];
+        const rightShoulder = landmarks[12];
+        
+        if (leftShoulder?.visibility > 0.5 && rightShoulder?.visibility > 0.5) {
+            const shoulderDistance = Math.abs(leftShoulder.x - rightShoulder.x);
+            if (shoulderDistance < 0.08) {
+                sideIndicators += 2;
+            } else if (shoulderDistance > 0.18) {
+                frontIndicators += 2;
+            }
+        } else if (leftShoulder?.visibility > 0.5 || rightShoulder?.visibility > 0.5) {
+            sideIndicators += 1;
+        }
+
+        const leftHip = landmarks[23];
+        const rightHip = landmarks[24];
+        
+        if (leftHip?.visibility > 0.5 && rightHip?.visibility > 0.5) {
+            const hipDistance = Math.abs(leftHip.x - rightHip.x);
+            if (hipDistance < 0.06) {
+                sideIndicators += 1;
+            } else if (hipDistance > 0.15) {
+                frontIndicators += 1;
+            }
+        } else if (leftHip?.visibility > 0.5 || rightHip?.visibility > 0.5) {
+            sideIndicators += 1;
+        }
+
+        const leftEar = landmarks[7];
+        const rightEar = landmarks[8];
+        const visibleEars = (leftEar?.visibility > 0.5 ? 1 : 0) + (rightEar?.visibility > 0.5 ? 1 : 0);
+        
+        if (visibleEars === 1) {
+            sideIndicators += 1;
+        } else if (visibleEars === 2) {
+            const earDistance = Math.abs(leftEar.x - rightEar.x);
+            if (earDistance > 0.12) {
+                frontIndicators += 1;
+            }
+        }
+
+        if (sideIndicators + frontIndicators === 0) {
+            return 'unknown';
+        }
+        
+        if (sideIndicators > frontIndicators) {
+            return 'side';
+        } else if (frontIndicators > sideIndicators) {
+            return 'front';
+        } else {
+            return 'unclear';
+        }
+    }
 }
