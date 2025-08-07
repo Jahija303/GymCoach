@@ -46,7 +46,7 @@ export function drawPoseLandmarks(results) {
                 radius: 6,
             });
         }
-        displayPoseData(results);
+        // displayPoseData(results);
     }
     poseCtx.restore();
 }

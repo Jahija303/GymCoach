@@ -1,3 +1,9 @@
+import { LandmarkReader, LANDMARK } from '../landmarks.js';
+
+DEFAULT_BODY_SCALE = 1.0;
+SHOULDER_DISTANCE_THRESHOLD = 0.3;
+HIP_DISTANCE_THRESHOLD = 0.18;
+
 export class Exercise {
     constructor() {
         this.exerciseStatus = document.getElementById('exercise-status');
@@ -29,25 +35,25 @@ export class Exercise {
         let rightArmAngle = null;
 
         if (results.landmarks && results.landmarks.length > 0) {
-            const landmarks = results.landmarks[0];
+            const reader = new LandmarkReader(results);
             
             // Left arm angle (shoulder-elbow-wrist)
-            const leftShoulder = landmarks[11];
-            const leftElbow = landmarks[13];
-            const leftWrist = landmarks[15];
+            const leftShoulder = reader.getLandmark(LANDMARK.LEFT_SHOULDER);
+            const leftElbow = reader.getLandmark(LANDMARK.LEFT_ELBOW);
+            const leftWrist = reader.getLandmark(LANDMARK.LEFT_WRIST);
             
             // Right arm angle (shoulder-elbow-wrist)
-            const rightShoulder = landmarks[12];
-            const rightElbow = landmarks[14];
-            const rightWrist = landmarks[16];
+            const rightShoulder = reader.getLandmark(LANDMARK.RIGHT_SHOULDER);
+            const rightElbow = reader.getLandmark(LANDMARK.RIGHT_ELBOW);
+            const rightWrist = reader.getLandmark(LANDMARK.RIGHT_WRIST);
 
             // Calculate left arm angle if all points are visible
-            if (leftShoulder.visibility > 0.5 && leftElbow.visibility > 0.5 && leftWrist.visibility > 0.5) {
+            if (leftShoulder && leftElbow && leftWrist) {
                 leftArmAngle = this.calculateAngle(leftShoulder, leftElbow, leftWrist);
             }
             
             // Calculate right arm angle if all points are visible
-            if (rightShoulder.visibility > 0.5 && rightElbow.visibility > 0.5 && rightWrist.visibility > 0.5) {
+            if (rightShoulder && rightElbow && rightWrist) {
                 rightArmAngle = this.calculateAngle(rightShoulder, rightElbow, rightWrist);
             }
         }
@@ -63,21 +69,21 @@ export class Exercise {
         let rightLegAngle = null;
 
         if (results.landmarks && results.landmarks.length > 0) {
-            const landmarks = results.landmarks[0];
-            const leftHip = landmarks[23];
-            const leftKnee = landmarks[25];
-            const leftAnkle = landmarks[27];
-            const rightHip = landmarks[24];
-            const rightKnee = landmarks[26];
-            const rightAnkle = landmarks[28];
+            const reader = new LandmarkReader(results);
+            const leftHip = reader.getLandmark(LANDMARK.LEFT_HIP);
+            const leftKnee = reader.getLandmark(LANDMARK.LEFT_KNEE);
+            const leftAnkle = reader.getLandmark(LANDMARK.LEFT_ANKLE);
+            const rightHip = reader.getLandmark(LANDMARK.RIGHT_HIP);
+            const rightKnee = reader.getLandmark(LANDMARK.RIGHT_KNEE);
+            const rightAnkle = reader.getLandmark(LANDMARK.RIGHT_ANKLE);
             
             // Calculate left leg angle if all points are visible
-            if (leftHip.visibility > 0.5 && leftKnee.visibility > 0.5 && leftAnkle.visibility > 0.5) {
+            if (leftHip && leftKnee && leftAnkle) {
                 leftLegAngle = this.calculateAngle(leftHip, leftKnee, leftAnkle);
             }
 
             // Calculate right leg angle if all points are visible
-            if (rightHip.visibility > 0.5 && rightKnee.visibility > 0.5 && rightAnkle.visibility > 0.5) {
+            if (rightHip && rightKnee && rightAnkle) {
                 rightLegAngle = this.calculateAngle(rightHip, rightKnee, rightAnkle);
             }
         }
@@ -93,22 +99,22 @@ export class Exercise {
         let rightHipAngle = null;
 
         if (results.landmarks && results.landmarks.length > 0) {
-            const landmarks = results.landmarks[0];
-            const leftShoulder = landmarks[11];
-            const rightShoulder = landmarks[12];
-            const leftHip = landmarks[23];
-            const rightHip = landmarks[24];
-            const leftKnee = landmarks[25];
-            const rightKnee = landmarks[26];
+            const reader = new LandmarkReader(results);
+            const leftShoulder = reader.getLandmark(LANDMARK.LEFT_SHOULDER);
+            const rightShoulder = reader.getLandmark(LANDMARK.RIGHT_SHOULDER);
+            const leftHip = reader.getLandmark(LANDMARK.LEFT_HIP);
+            const rightHip = reader.getLandmark(LANDMARK.RIGHT_HIP);
+            const leftKnee = reader.getLandmark(LANDMARK.LEFT_KNEE);
+            const rightKnee = reader.getLandmark(LANDMARK.RIGHT_KNEE);
 
             // Calculate body angle if all points are visible
             // Left side angle (shoulder-hip-knee)
-            if (leftShoulder.visibility > 0.5 && leftHip.visibility > 0.5 && leftKnee.visibility > 0.5) {
+            if (leftShoulder && leftHip && leftKnee) {
                 leftHipAngle = this.calculateAngle(leftShoulder, leftHip, leftKnee);
             }
 
             // Right side angle (shoulder-hip-knee)
-            if (rightShoulder.visibility > 0.5 && rightHip.visibility > 0.5 && rightKnee.visibility > 0.5) {
+            if (rightShoulder && rightHip && rightKnee) {
                 rightHipAngle = this.calculateAngle(rightShoulder, rightHip, rightKnee);
             }
         }
@@ -119,91 +125,113 @@ export class Exercise {
         };
     }
 
+    calculateBodyScale(reader) {
+        const leftShoulder = reader.getLandmark(LANDMARK.LEFT_SHOULDER);
+        const rightShoulder = reader.getLandmark(LANDMARK.RIGHT_SHOULDER);
+        const leftHip = reader.getLandmark(LANDMARK.LEFT_HIP);
+        const rightHip = reader.getLandmark(LANDMARK.RIGHT_HIP);
+
+        let bodyScale = DEFAULT_BODY_SCALE;
+
+        if (leftShoulder && leftHip) {
+            bodyScale = Math.abs(leftShoulder.y - leftHip.y);
+        } else if (rightShoulder && rightHip) {
+            bodyScale = Math.abs(rightShoulder.y - rightHip.y);
+        }
+
+        return Math.max(bodyScale, 0.1);
+    }
+
     userDirection(results) {
         if (!results.landmarks || results.landmarks.length === 0) {
             return 'unknown';
         }
 
-        const landmarks = results.landmarks[0];
+        const reader = new LandmarkReader(results);
         let frontIndicators = 0;
         let leftSideIndicators = 0;
         let rightSideIndicators = 0;
+        let relativeShoulderDistance = 0;
+        let relativeHipDistance = 0;
 
-        const leftShoulder = landmarks[11];
-        const rightShoulder = landmarks[12];
-        
-        if (leftShoulder?.visibility > 0.5 && rightShoulder?.visibility > 0.5) {
+        const bodyScale = this.calculateBodyScale(reader);
+        const leftShoulder = reader.getLandmark(LANDMARK.LEFT_SHOULDER);
+        const rightShoulder = reader.getLandmark(LANDMARK.RIGHT_SHOULDER);
+
+        if (leftShoulder && rightShoulder) {
             const shoulderDistance = Math.abs(leftShoulder.x - rightShoulder.x);
-            if (shoulderDistance < 0.08) {
+            relativeShoulderDistance = shoulderDistance / bodyScale;
+
+            if (relativeShoulderDistance < SHOULDER_DISTANCE_THRESHOLD) {
                 if (leftShoulder.visibility > rightShoulder.visibility) {
                     leftSideIndicators += 2;
                 } else if (rightShoulder.visibility > leftShoulder.visibility) {
                     rightSideIndicators += 2;
                 } else {
-                    // If visibility is equal, use x position (left shoulder should be on left side of screen for left side view)
                     if (leftShoulder.x < rightShoulder.x) {
                         leftSideIndicators += 2;
                     } else {
                         rightSideIndicators += 2;
                     }
                 }
-            } else if (shoulderDistance > 0.18) {
+            } else if (relativeShoulderDistance > SHOULDER_DISTANCE_THRESHOLD) {
                 frontIndicators += 2;
             }
-        } else if (leftShoulder?.visibility > 0.5) {
+        } else if (leftShoulder) {
             leftSideIndicators += 1;
-        } else if (rightShoulder?.visibility > 0.5) {
+        } else if (rightShoulder) {
             rightSideIndicators += 1;
         }
 
-        const leftHip = landmarks[23];
-        const rightHip = landmarks[24];
-        
-        if (leftHip?.visibility > 0.5 && rightHip?.visibility > 0.5) {
+        const leftHip = reader.getLandmark(LANDMARK.LEFT_HIP);
+        const rightHip = reader.getLandmark(LANDMARK.RIGHT_HIP);
+
+        if (leftHip && rightHip) {
             const hipDistance = Math.abs(leftHip.x - rightHip.x);
-            if (hipDistance < 0.06) {
-                // Determine which side based on visibility and position
+            relativeHipDistance = hipDistance / bodyScale;
+
+            if (relativeHipDistance < HIP_DISTANCE_THRESHOLD) {
                 if (leftHip.visibility > rightHip.visibility) {
                     leftSideIndicators += 1;
                 } else if (rightHip.visibility > leftHip.visibility) {
                     rightSideIndicators += 1;
                 } else {
-                    // If visibility is equal, use x position
                     if (leftHip.x < rightHip.x) {
                         leftSideIndicators += 1;
                     } else {
                         rightSideIndicators += 1;
                     }
                 }
-            } else if (hipDistance > 0.15) {
+            } else if (relativeHipDistance > HIP_DISTANCE_THRESHOLD) {
                 frontIndicators += 1;
             }
-        } else if (leftHip?.visibility > 0.5) {
+        } else if (leftHip) {
             leftSideIndicators += 1;
-        } else if (rightHip?.visibility > 0.5) {
+        } else if (rightHip) {
             rightSideIndicators += 1;
         }
 
+        let direction = '';
         const totalSideIndicators = leftSideIndicators + rightSideIndicators;
-        console.log("total side indicators: " + totalSideIndicators);
-        console.log("front indicators: " + frontIndicators);
         if (totalSideIndicators + frontIndicators === 0) {
-            return 'unknown';
+            direction = 'unknown';
         }
-        
+
         if (totalSideIndicators > frontIndicators) {
-            // Determine if it's left side or right side
             if (leftSideIndicators > rightSideIndicators) {
-                return 'left-side';
+                direction = 'left-side';
             } else if (rightSideIndicators > leftSideIndicators) {
-                return 'right-side';
+                direction = 'right-side';
             } else {
-                return 'unknown';
+                direction = 'unknown';
             }
         } else if (frontIndicators > totalSideIndicators) {
-            return 'front';
+            direction = 'front';
         } else {
-            return 'unclear';
+            direction = 'unclear';
         }
+
+        const poseData = document.getElementById('pose-data');
+        poseData.textContent = "Direction: " + direction + ` (Shoulder: ${relativeShoulderDistance.toFixed(2)}, Hip: ${relativeHipDistance.toFixed(2)})` + ` (Body Scale: ${bodyScale.toFixed(2)})`;
     }
 }
