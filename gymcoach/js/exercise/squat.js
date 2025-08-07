@@ -43,7 +43,7 @@ export class Squat extends Exercise {
             const leftHipAngle = hipAnglesResult.leftHipAngle;
             const rightHipAngle = hipAnglesResult.rightHipAngle;
 
-            console.log(this.userDirection(results));
+            const direction = this.userDirection(results)
 
             // we need to be confident that at least one side is visible before checking the form correctness
             switch (this.userDirection(results)) {
@@ -135,7 +135,7 @@ export class Squat extends Exercise {
         // You could also update UI elements here if needed
         // For example, display form feedback on screen
     }
-    validateFrontSquat(){
 
+    validateFrontSquat(){
     }
 }
