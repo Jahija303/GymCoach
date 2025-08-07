@@ -1,4 +1,4 @@
-import { LandmarkReader, LANDMARK } from '../landmarks.js';
+import { LandmarkReader, LANDMARK } from '../util/landmark_reader.js';
 
 DEFAULT_BODY_SCALE = 1.0;
 SHOULDER_DISTANCE_THRESHOLD = 0.3;
@@ -228,7 +228,7 @@ export class Exercise {
         } else if (frontIndicators > totalSideIndicators) {
             direction = 'front';
         } else {
-            direction = 'unclear';
+            direction = 'unknown';
         }
 
         const poseData = document.getElementById('pose-data');
