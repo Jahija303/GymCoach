@@ -48,10 +48,6 @@ export class Squat extends Exercise {
     constructor() {
         super();
         this.currentSquatState = null;
-        this.LEG_SQUAT_THRESHOLD = 120;    // knee angle for squat detection
-        this.HIP_SQUAT_THRESHOLD = 120;    // hip angle for squat detection
-        this.LEG_STANDING_THRESHOLD = 160; // knee angle for standing
-        this.HIP_STANDING_THRESHOLD = 160; // hip angle for standing
     }
 
     validate(results) {

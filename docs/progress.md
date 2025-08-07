@@ -138,3 +138,7 @@ progress:
 ## 07.08.2025
 
 task: 231-basic-exercise-form-calculation
+
+progress:
+- We made a relatively reliable scaling solution and solved the user direction issue
+- We are also able to detect different stages of a squat from the side. For the squat exercise we have to detect different stages of the exercise from the front, give feedback regarding the form and the rep counter. We are also looking into other solutions that would give us better feedback regarding the form since the angle calculation has a lot of limitations, probably training a ML model but this needs more research
