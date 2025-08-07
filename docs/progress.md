@@ -131,3 +131,10 @@ brainstorming:
 todo:
 - Analyze the exercise and understand what it means to do the exercise with a proper form and then try to translate this into code.
 - Optimize the body pose calculations
+
+progress:
+- We can successfully detect person front and side, however, we have a problem with scaling when the person stands further away from the camera. The values are hard-coded at the moment. We are trying to figure out how to setup scaling in order to detect person front and side from any distance
+
+## 07.08.2025
+
+task: 231-basic-exercise-form-calculation
