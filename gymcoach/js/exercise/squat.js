@@ -1,5 +1,49 @@
 import { Exercise } from './exercise.js';
 
+const VALID_HIP_ANGLES_SIDE = {
+    standing: {
+        start: 165,
+        end: 180       // Nearly straight hip (slight forward lean is normal)
+    },
+    quarterSquat: {
+        start: 140,
+        end: 165       // Slight hip hinge, minimal flexion
+    },
+    halfSquat: {
+        start: 110,
+        end: 140       // Moderate hip flexion, thighs approaching parallel
+    },
+    deepSquat: {
+        start: 85,
+        end: 110       // Significant hip flexion, below parallel
+    },
+    bottomPosition: {
+        start: 70,
+        end: 85        // Deep squat bottom, maximum hip flexion
+    }
+};
+const VALID_LEG_ANGLES_SIDE = {
+    standing: {
+        start: 170,
+        end: 180       // Nearly straight legs
+    },
+    quarterSquat: {
+        start: 145,
+        end: 170       // Slight knee bend
+    },
+    halfSquat: {
+        start: 120,
+        end: 145       // Moderate knee flexion, thighs parallel to ground
+    },
+    deepSquat: {
+        start: 90,
+        end: 120       // Significant knee bend, below parallel
+    },
+    bottomPosition: {
+        start: 70,
+        end: 90        // Maximum knee flexion at bottom
+    }
+};
 export class Squat extends Exercise {
     constructor() {
         super();
@@ -8,30 +52,6 @@ export class Squat extends Exercise {
         this.HIP_SQUAT_THRESHOLD = 120;    // hip angle for squat detection
         this.LEG_STANDING_THRESHOLD = 160; // knee angle for standing
         this.HIP_STANDING_THRESHOLD = 160; // hip angle for standing
-    }
-
-    updateSquatState(legAngle, hipAngle) {
-        const isSquatting = legAngle < this.LEG_SQUAT_THRESHOLD && hipAngle < this.HIP_SQUAT_THRESHOLD;
-        const isStanding = legAngle > this.LEG_STANDING_THRESHOLD && hipAngle > this.HIP_STANDING_THRESHOLD;
-
-        if (isSquatting) {
-            this.currentSquatState = 'squat';
-            if (typeof this.exerciseStatus !== 'undefined') {
-                this.exerciseStatus.className = 'status exercise-status apex';
-                this.exerciseStatus.textContent = `Squat`;
-            }
-        } else if (isStanding) {
-            this.currentSquatState = 'standing';
-            if (typeof this.exerciseStatus !== 'undefined') {
-                this.exerciseStatus.className = 'status exercise-status start';
-                this.exerciseStatus.textContent = `Standing`;
-            }
-        } else {
-            if (typeof this.exerciseStatus !== 'undefined') {
-                this.exerciseStatus.className = 'status exercise-status transition';
-                this.exerciseStatus.textContent = `Transition`;
-            }
-        }
     }
 
     validate(results) {
@@ -43,17 +63,14 @@ export class Squat extends Exercise {
             const leftHipAngle = hipAnglesResult.leftHipAngle;
             const rightHipAngle = hipAnglesResult.rightHipAngle;
 
-            const direction = this.userDirection(results)
-
-            // we need to be confident that at least one side is visible before checking the form correctness
             switch (this.userDirection(results)) {
             case 'left-side':
                 console.log('Left side view detected');
-                //this.validateSideSquat(leftLegAngle, leftHipAngle);
+                this.validateSideSquatForm(leftLegAngle, leftHipAngle);
                 break;
             case 'right-side':
                 console.log('Right side view detected');
-                //this.validateSideSquat(rightLegAngle, rightHipAngle);
+                this.validateSideSquatForm(rightLegAngle, rightHipAngle);
                 break;
             case 'front':
                 console.log('Front view detected');
@@ -62,80 +79,32 @@ export class Squat extends Exercise {
             case 'unknown':
                 console.log('Unknown view detected');
             }
-
         }
     }
 
-    validateSideSquat(legAngle, hipAngle) {
-        this.updateSquatState(legAngle, hipAngle);
-        
-        // Validate squat form from side view
-        let formFeedback = [];
-        
-        // Check if angles are valid (not null)
-        if (legAngle === null || hipAngle === null) {
-            console.log('Cannot validate squat - insufficient pose data');
-            return;
-        }
-        
-        // Form validation based on current squat state
-        if (this.currentSquatState === 'squat') {
-            // In squat position - check for proper depth and form
-            
-            // Check squat depth - knee angle should be well below threshold
-            if (legAngle > this.LEG_SQUAT_THRESHOLD + 10) {
-                formFeedback.push('Go deeper - squat not low enough');
-            } else if (legAngle <= this.LEG_SQUAT_THRESHOLD) {
-                formFeedback.push('Good squat depth!');
-            }
-            
-            // Check hip hinge - hip angle should be appropriately flexed
-            if (hipAngle > this.HIP_SQUAT_THRESHOLD + 15) {
-                formFeedback.push('Bend more at the hips - push hips back');
-            } else if (hipAngle <= this.HIP_SQUAT_THRESHOLD) {
-                formFeedback.push('Good hip position!');
-            }
-            
-            // Check for knee-hip coordination (both should be bent)
-            if (Math.abs(legAngle - hipAngle) > 30) {
-                formFeedback.push('Try to coordinate knee and hip movement');
-            }
-            
-        } else if (this.currentSquatState === 'standing') {
-            // In standing position - check for full extension
-            
-            if (legAngle < this.LEG_STANDING_THRESHOLD - 10) {
-                formFeedback.push('Straighten your legs completely');
-            } else if (legAngle >= this.LEG_STANDING_THRESHOLD) {
-                formFeedback.push('Good standing position!');
-            }
-            
-            if (hipAngle < this.HIP_STANDING_THRESHOLD - 10) {
-                formFeedback.push('Stand up tall - extend hips fully');
-            } else if (hipAngle >= this.HIP_STANDING_THRESHOLD) {
-                formFeedback.push('Good upright posture!');
-            }
-            
-        } else {
-            // In transition - provide guidance
-            if (legAngle > this.LEG_STANDING_THRESHOLD && hipAngle > this.HIP_STANDING_THRESHOLD) {
-                formFeedback.push('Ready to squat - bend knees and hips');
-            } else if (legAngle < this.LEG_SQUAT_THRESHOLD && hipAngle < this.HIP_SQUAT_THRESHOLD) {
-                formFeedback.push('Ready to stand - push through heels');
-            } else {
-                formFeedback.push('Keep moving smoothly');
-            }
-        }
-        
-        // Log feedback for debugging
-        if (formFeedback.length > 0) {
-            console.log('Squat form feedback:', formFeedback.join(', '));
-        }
+    validateSideSquatForm(legAngle, hipAngle) {
+        const legState = this.determineAngleState(legAngle, VALID_LEG_ANGLES_SIDE);
+        const hipState = this.determineAngleState(hipAngle, VALID_HIP_ANGLES_SIDE);
 
-        // You could also update UI elements here if needed
-        // For example, display form feedback on screen
+        console.log("======")
+        console.log(legState, hipState);
+        this.currentSquatState = legState === hipState ? legState : 'transition';
+        if (typeof this.exerciseStatus !== 'undefined') {
+            this.exerciseStatus.className = `status exercise-status ${this.currentSquatState}`;
+            this.exerciseStatus.textContent = this.currentSquatState.charAt(0).toUpperCase() + this.currentSquatState.slice(1);
+        }
+    }
+
+    determineAngleState(angle, validAngles) {
+        for (const [stateName, range] of Object.entries(validAngles)) {
+            if (angle >= range.start && angle <= range.end) {
+                return stateName;
+            }
+        }
+        return 'unknown';
     }
 
     validateFrontSquat(){
+        // TODO
     }
 }

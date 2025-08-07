@@ -1,10 +1,10 @@
 import { LandmarkReader, LANDMARK } from '../util/landmark_reader.js';
 
-DEFAULT_BODY_SCALE = 1.0;
-SHOULDER_DISTANCE_THRESHOLD = 0.3;
-HIP_DISTANCE_THRESHOLD = 0.18;
-
 export class Exercise {
+    DEFAULT_BODY_SCALE = 1.0;
+    SHOULDER_DISTANCE_THRESHOLD = 0.3;
+    HIP_DISTANCE_THRESHOLD = 0.18;
+
     constructor() {
         this.exerciseStatus = document.getElementById('exercise-status');
     }
@@ -131,7 +131,7 @@ export class Exercise {
         const leftHip = reader.getLandmark(LANDMARK.LEFT_HIP);
         const rightHip = reader.getLandmark(LANDMARK.RIGHT_HIP);
 
-        let bodyScale = DEFAULT_BODY_SCALE;
+        let bodyScale = this.DEFAULT_BODY_SCALE;
 
         if (leftShoulder && leftHip) {
             bodyScale = Math.abs(leftShoulder.y - leftHip.y);
@@ -162,7 +162,7 @@ export class Exercise {
             const shoulderDistance = Math.abs(leftShoulder.x - rightShoulder.x);
             relativeShoulderDistance = shoulderDistance / bodyScale;
 
-            if (relativeShoulderDistance < SHOULDER_DISTANCE_THRESHOLD) {
+            if (relativeShoulderDistance < this.SHOULDER_DISTANCE_THRESHOLD) {
                 if (leftShoulder.visibility > rightShoulder.visibility) {
                     leftSideIndicators += 2;
                 } else if (rightShoulder.visibility > leftShoulder.visibility) {
@@ -174,7 +174,7 @@ export class Exercise {
                         rightSideIndicators += 2;
                     }
                 }
-            } else if (relativeShoulderDistance > SHOULDER_DISTANCE_THRESHOLD) {
+            } else if (relativeShoulderDistance > this.SHOULDER_DISTANCE_THRESHOLD) {
                 frontIndicators += 2;
             }
         } else if (leftShoulder) {
@@ -190,7 +190,7 @@ export class Exercise {
             const hipDistance = Math.abs(leftHip.x - rightHip.x);
             relativeHipDistance = hipDistance / bodyScale;
 
-            if (relativeHipDistance < HIP_DISTANCE_THRESHOLD) {
+            if (relativeHipDistance < this.HIP_DISTANCE_THRESHOLD) {
                 if (leftHip.visibility > rightHip.visibility) {
                     leftSideIndicators += 1;
                 } else if (rightHip.visibility > leftHip.visibility) {
@@ -202,7 +202,7 @@ export class Exercise {
                         rightSideIndicators += 1;
                     }
                 }
-            } else if (relativeHipDistance > HIP_DISTANCE_THRESHOLD) {
+            } else if (relativeHipDistance > this.HIP_DISTANCE_THRESHOLD) {
                 frontIndicators += 1;
             }
         } else if (leftHip) {
@@ -233,5 +233,6 @@ export class Exercise {
 
         const poseData = document.getElementById('pose-data');
         poseData.textContent = "Direction: " + direction + ` (Shoulder: ${relativeShoulderDistance.toFixed(2)}, Hip: ${relativeHipDistance.toFixed(2)})` + ` (Body Scale: ${bodyScale.toFixed(2)})`;
+        return direction;
     }
 }
