@@ -142,3 +142,17 @@ task: 231-basic-exercise-form-calculation
 progress:
 - We made a relatively reliable scaling solution and solved the user direction issue
 - We are also able to detect different stages of a squat from the side. For the squat exercise we have to detect different stages of the exercise from the front, give feedback regarding the form and the rep counter. We are also looking into other solutions that would give us better feedback regarding the form since the angle calculation has a lot of limitations, probably training a ML model but this needs more research
+
+
+## 08.08.2025
+
+task: 231-basic-exercise-form-calculation
+
+to do:
+- Update the method for squat validation from the front.
+- Update manual validations to include validation of knee positioning from the front(both legs) and from the side. The idea is to have the manual calculations as safety measures.
+- With the manual calculations we can include rep and duration counter(to verify that the person is not doing the exercise too fast) for stability metrics.
+- Research the creation of the ML model, is it realistic for us to implement in this case? We will pause the manual calculations for the other exercises until we understand this better. The goal is to have one exercise (for now) that can be completely validated.
+
+problems:
+- There might be a problem with front squat validation. If the user is not perfectly front facing the camera, the angles cannot be aligned. We need to further investigate if there is a possiblity to get the body rotation degree. If we find a way to get the rotation degree, we might be able to calculate the knee degrees and determine if the user has potential for knee injury.

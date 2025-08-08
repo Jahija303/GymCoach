@@ -151,6 +151,7 @@ button:disabled {
   background-color: white;
   border-color: lightgray;
   color: black;
+  font-size: 18px;
 }
 
 .exercise-status.standing {
