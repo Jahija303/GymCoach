@@ -44,6 +44,53 @@ const VALID_LEG_ANGLES_SIDE = {
         end: 90        // Maximum knee flexion at bottom
     }
 };
+
+const VALID_HIP_ANGLES_FRONT = {
+    standing: {
+        start: 175,
+        end: 180       // Nearly straight, minimal forward lean visible from front
+    },
+    quarterSquat: {
+        start: 160,
+        end: 175       // Slight hip hinge, less pronounced from front view
+    },
+    halfSquat: {
+        start: 145,
+        end: 160       // Moderate hip flexion, visible torso lean forward
+    },
+    deepSquat: {
+        start: 125,
+        end: 145       // Significant hip flexion, noticeable forward lean
+    },
+    bottomPosition: {
+        start: 110,
+        end: 125       // Maximum hip flexion, pronounced forward torso angle
+    }
+};
+
+const VALID_LEG_ANGLES_FRONT = {
+    standing: {
+        start: 175,
+        end: 180       // Nearly straight legs from frontal view
+    },
+    quarterSquat: {
+        start: 155,
+        end: 175       // Slight knee bend, less visible from front
+    },
+    halfSquat: {
+        start: 135,
+        end: 155       // Moderate knee flexion, thighs approaching parallel
+    },
+    deepSquat: {
+        start: 110,
+        end: 135       // Significant knee bend, below parallel
+    },
+    bottomPosition: {
+        start: 90,
+        end: 110       // Maximum knee flexion, deep squat position
+    }
+};
+
 export class Squat extends Exercise {
     constructor() {
         super();
@@ -70,7 +117,7 @@ export class Squat extends Exercise {
                 break;
             case 'front':
                 console.log('Front view detected');
-                this.validateFrontSquat(leftLegAngle, leftHipAngle, rightLegAngle, rightHipAngle);
+                this.validateFrontSquatForm(leftLegAngle, leftHipAngle, rightLegAngle, rightHipAngle);
                 break;
             case 'unknown':
                 console.log('Unknown view detected');
@@ -87,7 +134,7 @@ export class Squat extends Exercise {
         this.currentSquatState = legState === hipState ? legState : 'transition';
         if (typeof this.exerciseStatus !== 'undefined') {
             this.exerciseStatus.className = `status exercise-status ${this.currentSquatState}`;
-            this.exerciseStatus.textContent = this.currentSquatState.charAt(0).toUpperCase() + this.currentSquatState.slice(1);
+            this.exerciseStatus.textContent = this.currentSquatState;
         }
     }
 
@@ -100,7 +147,25 @@ export class Squat extends Exercise {
         return 'unknown';
     }
 
-    validateFrontSquat(){
-        // TODO
+    validateFrontSquatForm(leftLegAngle, leftHipAngle, rightLegAngle, rightHipAngle) {
+        // const leftLegState = this.determineAngleState(leftLegAngle, VALID_LEG_ANGLES_FRONT);
+        // const leftHipState = this.determineAngleState(leftHipAngle, VALID_HIP_ANGLES_FRONT);
+        // const rightLegState = this.determineAngleState(rightLegAngle, VALID_LEG_ANGLES_FRONT);
+        // const rightHipState = this.determineAngleState(rightHipAngle, VALID_HIP_ANGLES_FRONT);
+
+        // let message = ""
+        // if(leftHipState != rightHipState) {
+        //     message += "Warning: Left hip " + leftHipState + " and right hip " + rightHipState + " angles do not match. ";
+        // }
+        // if (leftLegState != rightLegState){
+        //     message += "Warning: Left leg " + leftLegState + " and right leg " + rightLegState + " angles do not match. ";
+        // }
+        // this.currentSquatState = (leftLegState === rightLegState && leftHipState === rightHipState) 
+        //     ? leftLegState 
+        //     : 'transition';
+        // if (typeof this.exerciseStatus !== 'undefined') {
+        //     this.exerciseStatus.className = `status exercise-status ${this.currentSquatState}`;
+        //     this.exerciseStatus.textContent = this.currentSquatState + message;
+        // }
     }
 }
