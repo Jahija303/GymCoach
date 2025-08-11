@@ -41,8 +41,12 @@ export const LANDMARK = {
 };
 
 export class LandmarkReader {
-    constructor(results) {
-        this.landmarks = results?.landmarks?.[0] || null;
+    constructor(landmarks = null) {
+        this.landmarks = landmarks;
+    }
+
+    setLandmarks(landmarks) {
+        this.landmarks = landmarks;
     }
 
     getLandmark(landmarkIndex) {

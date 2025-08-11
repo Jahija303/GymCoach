@@ -1,5 +1,5 @@
 import { Exercise } from './exercise.js';
-import { LandmarkReader, LANDMARK } from '../util/landmark_reader.js';
+import { LANDMARK } from '../util/landmark_reader.js';
 
 const VALID_HIP_ANGLES_SIDE = {
     standing: {
@@ -101,26 +101,37 @@ export class Squat extends Exercise {
 
     validate(results) {
         if (results.landmarks && results.landmarks.length > 0) {
-            const reader = new LandmarkReader(results);
+            super.normalizeKeypoints(results); // Instantiate a reader with normalized keypoints
 
-            const leftHip = reader.getLandmark(LANDMARK.LEFT_HIP);
-            const leftKnee = reader.getLandmark(LANDMARK.LEFT_KNEE);
-            const leftAnkle = reader.getLandmark(LANDMARK.LEFT_ANKLE);
-            const leftShoulder = reader.getLandmark(LANDMARK.LEFT_SHOULDER);
+            const leftHip = this.reader.getLandmark(LANDMARK.LEFT_HIP);
+            const leftKnee = this.reader.getLandmark(LANDMARK.LEFT_KNEE);
+            const leftAnkle = this.reader.getLandmark(LANDMARK.LEFT_ANKLE);
+            const leftShoulder = this.reader.getLandmark(LANDMARK.LEFT_SHOULDER);
 
-            const rightHip = reader.getLandmark(LANDMARK.RIGHT_HIP);
-            const rightKnee = reader.getLandmark(LANDMARK.RIGHT_KNEE);
-            const rightAnkle = reader.getLandmark(LANDMARK.RIGHT_ANKLE);
-            const rightShoulder = reader.getLandmark(LANDMARK.RIGHT_SHOULDER);
+            const rightHip = this.reader.getLandmark(LANDMARK.RIGHT_HIP);
+            const rightKnee = this.reader.getLandmark(LANDMARK.RIGHT_KNEE);
+            const rightAnkle = this.reader.getLandmark(LANDMARK.RIGHT_ANKLE);
+            const rightShoulder = this.reader.getLandmark(LANDMARK.RIGHT_SHOULDER);
 
-            const leftLegAngle = this.calculateAngle3D(leftHip, leftKnee, leftAnkle);
-            const rightLegAngle = this.calculateAngle3D(rightHip, rightKnee, rightAnkle);
-            const leftHipAngle = this.calculateAngle3D(leftShoulder, leftHip, leftKnee);
-            const rightHipAngle = this.calculateAngle3D(rightShoulder, rightHip, rightKnee);
+            const rightElbow = this.reader.getLandmark(LANDMARK.RIGHT_ELBOW);
+            const leftElbow = this.reader.getLandmark(LANDMARK.LEFT_ELBOW);
+            const rightWrist = this.reader.getLandmark(LANDMARK.RIGHT_WRIST);
+            const leftWrist = this.reader.getLandmark(LANDMARK.LEFT_WRIST);
+
+            const rightArmAngle = this.calculateAngle3D(rightShoulder, rightElbow, rightWrist);
+            const leftArmAngle = this.calculateAngle3D(leftShoulder, leftElbow, leftWrist);
 
             const poseData = document.getElementById('pose-data');
-            poseData.textContent = `Left Leg: ${leftLegAngle}, Right Leg: ${rightLegAngle}, Left Hip: ${leftHipAngle}, Right Hip: ${rightHipAngle}`;
-            console.log("body rotation " + this.calculate3DBodyRotation(reader).rotation);
+            poseData.textContent = `Left Arm: ${leftArmAngle}, Right Arm: ${rightArmAngle}`;
+            // poseData.textContent = `Left (x,y,z): (${leftElbow.x.toFixed(2)}, ${leftElbow.y.toFixed(2)}, ${leftElbow.z.toFixed(2)})`;
+
+            // const leftLegAngle = this.calculateAngle3D(leftHip, leftKnee, leftAnkle);
+            // const rightLegAngle = this.calculateAngle3D(rightHip, rightKnee, rightAnkle);
+            // const leftHipAngle = this.calculateAngle3D(leftShoulder, leftHip, leftKnee);
+            // const rightHipAngle = this.calculateAngle3D(rightShoulder, rightHip, rightKnee);
+
+            // poseData.textContent = `Left Leg: ${leftLegAngle}, Right Leg: ${rightLegAngle}, Left Hip: ${leftHipAngle}, Right Hip: ${rightHipAngle}`;
+            console.log("body rotation " + this.calculate3DBodyRotation(this.reader).rotation);
 
             // this.validateSideSquatForm(leftLegAngle, leftHipAngle);
         }
