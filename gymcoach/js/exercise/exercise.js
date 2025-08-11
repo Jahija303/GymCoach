@@ -1,4 +1,4 @@
-import { LANDMARK } from "../util/landmark_reader.js";
+import { LANDMARK, LandmarkReader } from "../util/landmark_reader.js";
 
 export class Exercise {
     DEFAULT_BODY_SCALE = 1.0;
@@ -7,13 +7,103 @@ export class Exercise {
 
     constructor() {
         this.exerciseStatus = document.getElementById('exercise-status');
+        this.reader = new LandmarkReader();
     }
 
-    calculateBodyScale(reader) {
-        const leftShoulder = reader.getLandmark(LANDMARK.LEFT_SHOULDER);
-        const rightShoulder = reader.getLandmark(LANDMARK.RIGHT_SHOULDER);
-        const leftHip = reader.getLandmark(LANDMARK.LEFT_HIP);
-        const rightHip = reader.getLandmark(LANDMARK.RIGHT_HIP);
+    // calculateAdvancedBodyScale(landmarks) {
+    //     this.reader.setLandmarks(landmarks);
+    //     const measurements = {};
+
+    //     const leftShoulder = this.reader.getLandmark(LANDMARK.LEFT_SHOULDER);
+    //     const rightShoulder = this.reader.getLandmark(LANDMARK.RIGHT_SHOULDER);
+    //     const leftHip = this.reader.getLandmark(LANDMARK.LEFT_HIP);
+    //     const rightHip = this.reader.getLandmark(LANDMARK.RIGHT_HIP);
+
+    //     // If shoulders are not available, fall back to default scale
+    //     if (!leftShoulder || !rightShoulder) {
+    //         console.log("Shoulders not detected, using default body scale");
+    //         return this.DEFAULT_BODY_SCALE;
+    //     }
+
+    //     measurements.shoulderWidth = Math.sqrt(
+    //         Math.pow(rightShoulder.x - leftShoulder.x, 2) +
+    //         Math.pow(rightShoulder.y - leftShoulder.y, 2) +
+    //         Math.pow(rightShoulder.z - leftShoulder.z, 2)
+    //     );
+
+    //     const shoulderMid = {
+    //         x: (leftShoulder.x + rightShoulder.x) / 2,
+    //         y: (leftShoulder.y + rightShoulder.y) / 2,
+    //         z: (leftShoulder.z + rightShoulder.z) / 2
+    //     };
+
+    //     const hipsAvailable = leftHip && rightHip;
+    //     if (hipsAvailable) {
+    //         const hipMid = {
+    //             x: (leftHip.x + rightHip.x) / 2,
+    //             y: (leftHip.y + rightHip.y) / 2,
+    //             z: (leftHip.z + rightHip.z) / 2
+    //         };
+
+    //         measurements.torsoLength = Math.sqrt(
+    //             Math.pow(shoulderMid.x - hipMid.x, 2) +
+    //             Math.pow(shoulderMid.y - hipMid.y, 2) +
+    //             Math.pow(shoulderMid.z - hipMid.z, 2)
+    //         );
+
+    //         measurements.hipWidth = Math.sqrt(
+    //             Math.pow(rightHip.x - leftHip.x, 2) +
+    //             Math.pow(rightHip.y - leftHip.y, 2) +
+    //             Math.pow(rightHip.z - leftHip.z, 2)
+    //         );
+    //     }
+
+    //     const averageProportions = {
+    //         torsoLength: 0.50,    // ~50cm
+    //         shoulderWidth: 0.38,   // ~38cm
+    //         hipWidth: 0.32        // ~32cm
+    //     };
+
+    //     let finalScale;
+    //     if (hipsAvailable && measurements.torsoLength > 0 && measurements.hipWidth > 0) {
+    //         const scaleFactors = {
+    //             fromTorso: averageProportions.torsoLength / measurements.torsoLength,
+    //             fromShoulder: averageProportions.shoulderWidth / measurements.shoulderWidth,
+    //             fromHip: averageProportions.hipWidth / measurements.hipWidth
+    //         };
+
+    //         finalScale = (
+    //             scaleFactors.fromTorso * 0.5 +
+    //             scaleFactors.fromShoulder * 0.3 +
+    //             scaleFactors.fromHip * 0.2
+    //         );
+
+    //         console.log(`Full body scale calculation - Torso: ${measurements.torsoLength.toFixed(3)}, Shoulder: ${measurements.shoulderWidth.toFixed(3)}, Hip: ${measurements.hipWidth.toFixed(3)}, Scale: ${finalScale.toFixed(3)}`);
+    //     } else {
+    //         const shoulderScale = averageProportions.shoulderWidth / measurements.shoulderWidth;
+
+    //         // Estimate torso length from shoulder width (typical ratio is ~1.3)
+    //         const estimatedTorsoLength = measurements.shoulderWidth * 1.3;
+    //         const torsoScale = averageProportions.torsoLength / estimatedTorsoLength;
+
+    //         // Weighted average favoring shoulder measurement
+    //         finalScale = shoulderScale * 0.7 + torsoScale * 0.3;
+
+    //         console.log(`Shoulder-only body scale calculation - Shoulder: ${measurements.shoulderWidth.toFixed(3)}, Estimated torso: ${estimatedTorsoLength.toFixed(3)}, Scale: ${finalScale.toFixed(3)}`);
+    //     }
+
+    //     // Ensure the scale is within reasonable bounds
+    //     finalScale = Math.max(0.1, Math.min(10.0, finalScale));
+
+    //     return finalScale;
+    // }
+
+    calculateBodyScale(landmarks) {
+        this.reader.setLandmarks(landmarks);
+        const leftShoulder = this.reader.getLandmark(LANDMARK.LEFT_SHOULDER);
+        const rightShoulder = this.reader.getLandmark(LANDMARK.RIGHT_SHOULDER);
+        const leftHip = this.reader.getLandmark(LANDMARK.LEFT_HIP);
+        const rightHip = this.reader.getLandmark(LANDMARK.RIGHT_HIP);
 
         let bodyScale = this.DEFAULT_BODY_SCALE;
 
@@ -23,7 +113,28 @@ export class Exercise {
             bodyScale = Math.abs(rightShoulder.y - rightHip.y);
         }
 
+        console.log("body scale " + bodyScale);
         return Math.max(bodyScale, 0.1);
+    }
+
+    normalizeKeypoints(results) {
+        const normalizedKeypoints = this.normalizeKeypointsZ(results?.landmarks[0]);
+        this.reader.setLandmarks(normalizedKeypoints);
+    }
+
+    normalizeKeypointsZ(landmarks) {
+        const scaleZ = this.calculateBodyScale(landmarks);
+        const normalizedKeypoints = [...landmarks];
+
+        const referenceZ = landmarks[0].z;
+
+        normalizedKeypoints.forEach(point => {
+            if (point.z !== undefined) {
+                point.z = (point.z - referenceZ) * scaleZ;
+            }
+        });
+        
+        return normalizedKeypoints;
     }
 
     calculate3DBodyRotation(reader) {
