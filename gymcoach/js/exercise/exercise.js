@@ -1,13 +1,14 @@
 import { LANDMARK, LandmarkReader } from "../util/landmark_reader.js";
 
 export class Exercise {
-    DEFAULT_BODY_SCALE = 1.0;
+    DEFAULT_BODY_SCALE = 0.5;
     SHOULDER_DISTANCE_THRESHOLD = 0.3;
     HIP_DISTANCE_THRESHOLD = 0.18;
 
     constructor() {
         this.exerciseStatus = document.getElementById('exercise-status');
         this.reader = new LandmarkReader();
+        this.poseData = document.getElementById('pose-data');
     }
 
     // calculateAdvancedBodyScale(landmarks) {
@@ -112,8 +113,7 @@ export class Exercise {
         } else if (rightShoulder && rightHip) {
             bodyScale = Math.abs(rightShoulder.y - rightHip.y);
         }
-
-        console.log("body scale " + bodyScale);
+        
         return Math.max(bodyScale, 0.1);
     }
 
