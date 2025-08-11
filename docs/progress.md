@@ -159,3 +159,8 @@ problems:
 
 progress:
 - In our attempt to validate correct knee angles and positions we relised that there are a lot of edge cases for this, for example if we define strict angles which the user must fulfill from the side perspective, the user might not exaclty face the side and have a certain offset, hence it would result in incorrect validations, so we tried to go around this problem by calculating the joint angle in a 3d plane using the z point of blazePose, this is still work in progress.
+
+## 11.08.2025
+
+progress:
+- Today we tried to make calculate3DAngle method more accurate by normalizing the Z keypoint using the users body scale as a reference, however it still did not turn out as accurate as we hoped it would, we need to investigate this more
