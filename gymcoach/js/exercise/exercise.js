@@ -46,8 +46,13 @@ export class Exercise {
         return { rotation: rotation, tilt: tilt };
     }
 
-    calculateAngle3D(point1, vertex, point2) {
+    calculateAngle3D(point1, vertex, point2, previousAngle = null) {
         if (!point1 || !vertex || !point2) {
+            return null;
+        }
+
+        const avgConfidence = (point1.visibility + vertex.visibility + point2.visibility) / 3;
+        if (avgConfidence < 0.7) {
             return null;
         }
 
@@ -74,8 +79,57 @@ export class Exercise {
 
         const cosAngle = dotProduct / (magnitude1 * magnitude2);
         const angleRadians = Math.acos(Math.max(-1, Math.min(1, cosAngle))); // Clamp to avoid NaN
-        const angleDegrees = angleRadians * (180 / Math.PI);
+        let angleDegrees = angleRadians * (180 / Math.PI);
 
-        return angleDegrees;
+        if (angleDegrees < 10 || angleDegrees > 180) {
+            return null; // Anatomically impossible angle
+        }
+
+        // Add temporal smoothing if previous angle is available
+        if (previousAngle !== null && Math.abs(angleDegrees - previousAngle) < 45) {
+            const smoothingFactor = 0.7;
+            angleDegrees = previousAngle * smoothingFactor + angleDegrees * (1 - smoothingFactor);
+        }
+
+        return Math.round(angleDegrees * 100) / 100;
+    }
+
+    calculateAngle2D(point1, vertex, point2, previousAngle = null) {
+        if (!point1 || !vertex || !point2) {
+            return null;
+        }
+
+        const vector1 = {
+            x: point1.x - vertex.x,
+            y: point1.y - vertex.y
+        };
+
+        const vector2 = {
+            x: point2.x - vertex.x,
+            y: point2.y - vertex.y
+        };
+
+        const dotProduct = vector1.x * vector2.x + vector1.y * vector2.y;
+        const magnitude1 = Math.sqrt(vector1.x ** 2 + vector1.y ** 2);
+        const magnitude2 = Math.sqrt(vector2.x ** 2 + vector2.y ** 2);
+
+        if (magnitude1 === 0 || magnitude2 === 0) {
+            return null;
+        }
+
+        const cosAngle = dotProduct / (magnitude1 * magnitude2);
+        const angleRadians = Math.acos(Math.max(-1, Math.min(1, cosAngle)));
+        let angleDegrees = angleRadians * (180 / Math.PI);
+
+        if (angleDegrees < 10 || angleDegrees > 180) {
+            return null;
+        }
+
+        if (previousAngle !== null && Math.abs(angleDegrees - previousAngle) < 45) {
+            const smoothingFactor = 0.7;
+            angleDegrees = previousAngle * smoothingFactor + angleDegrees * (1 - smoothingFactor);
+        }
+
+        return Math.round(angleDegrees * 100) / 100;
     }
 }
