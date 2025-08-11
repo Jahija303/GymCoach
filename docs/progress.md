@@ -164,3 +164,4 @@ progress:
 
 progress:
 - Today we tried to make calculate3DAngle method more accurate by normalizing the Z keypoint using the users body scale as a reference, however it still did not turn out as accurate as we hoped it would, we need to investigate this more
+- Refactored squat state validation from the side
