@@ -47,52 +47,6 @@ const VALID_LEG_ANGLES_SIDE = {
     }
 };
 
-const VALID_HIP_ANGLES_FRONT = {
-    standing: {
-        start: 175,
-        end: 180       // Nearly straight, minimal forward lean visible from front
-    },
-    quarterSquat: {
-        start: 160,
-        end: 175       // Slight hip hinge, less pronounced from front view
-    },
-    halfSquat: {
-        start: 145,
-        end: 160       // Moderate hip flexion, visible torso lean forward
-    },
-    deepSquat: {
-        start: 125,
-        end: 145       // Significant hip flexion, noticeable forward lean
-    },
-    bottomPosition: {
-        start: 110,
-        end: 125       // Maximum hip flexion, pronounced forward torso angle
-    }
-};
-
-const VALID_LEG_ANGLES_FRONT = {
-    standing: {
-        start: 175,
-        end: 180       // Nearly straight legs from frontal view
-    },
-    quarterSquat: {
-        start: 155,
-        end: 175       // Slight knee bend, less visible from front
-    },
-    halfSquat: {
-        start: 135,
-        end: 155       // Moderate knee flexion, thighs approaching parallel
-    },
-    deepSquat: {
-        start: 110,
-        end: 135       // Significant knee bend, below parallel
-    },
-    bottomPosition: {
-        start: 90,
-        end: 110       // Maximum knee flexion, deep squat position
-    }
-};
-
 export class Squat extends Exercise {
     constructor() {
         super();
@@ -103,38 +57,47 @@ export class Squat extends Exercise {
         if (results.landmarks && results.landmarks.length > 0) {
             super.normalizeKeypoints(results); // Instantiate a reader with normalized keypoints
 
+            const leftShoulder = this.reader.getLandmark(LANDMARK.LEFT_SHOULDER);
             const leftHip = this.reader.getLandmark(LANDMARK.LEFT_HIP);
             const leftKnee = this.reader.getLandmark(LANDMARK.LEFT_KNEE);
             const leftAnkle = this.reader.getLandmark(LANDMARK.LEFT_ANKLE);
-            const leftShoulder = this.reader.getLandmark(LANDMARK.LEFT_SHOULDER);
-
+            
+            const rightShoulder = this.reader.getLandmark(LANDMARK.RIGHT_SHOULDER);
             const rightHip = this.reader.getLandmark(LANDMARK.RIGHT_HIP);
             const rightKnee = this.reader.getLandmark(LANDMARK.RIGHT_KNEE);
             const rightAnkle = this.reader.getLandmark(LANDMARK.RIGHT_ANKLE);
-            const rightShoulder = this.reader.getLandmark(LANDMARK.RIGHT_SHOULDER);
 
-            const rightElbow = this.reader.getLandmark(LANDMARK.RIGHT_ELBOW);
-            const leftElbow = this.reader.getLandmark(LANDMARK.LEFT_ELBOW);
-            const rightWrist = this.reader.getLandmark(LANDMARK.RIGHT_WRIST);
-            const leftWrist = this.reader.getLandmark(LANDMARK.LEFT_WRIST);
-
-            const rightArmAngle = this.calculateAngle3D(rightShoulder, rightElbow, rightWrist);
-            const leftArmAngle = this.calculateAngle3D(leftShoulder, leftElbow, leftWrist);
-
-            const poseData = document.getElementById('pose-data');
-            poseData.textContent = `Left Arm: ${leftArmAngle}, Right Arm: ${rightArmAngle}`;
-            // poseData.textContent = `Left (x,y,z): (${leftElbow.x.toFixed(2)}, ${leftElbow.y.toFixed(2)}, ${leftElbow.z.toFixed(2)})`;
-
-            // const leftLegAngle = this.calculateAngle3D(leftHip, leftKnee, leftAnkle);
-            // const rightLegAngle = this.calculateAngle3D(rightHip, rightKnee, rightAnkle);
-            // const leftHipAngle = this.calculateAngle3D(leftShoulder, leftHip, leftKnee);
-            // const rightHipAngle = this.calculateAngle3D(rightShoulder, rightHip, rightKnee);
-
-            // poseData.textContent = `Left Leg: ${leftLegAngle}, Right Leg: ${rightLegAngle}, Left Hip: ${leftHipAngle}, Right Hip: ${rightHipAngle}`;
-            console.log("body rotation " + this.calculate3DBodyRotation(this.reader).rotation);
-
-            // this.validateSideSquatForm(leftLegAngle, leftHipAngle);
+            const leftLegAngle = this.calculateAngle3D(leftHip, leftKnee, leftAnkle);
+            const rightLegAngle = this.calculateAngle3D(rightHip, rightKnee, rightAnkle);
+            const leftHipAngle = this.calculateAngle3D(leftShoulder, leftHip, leftKnee);
+            const rightHipAngle = this.calculateAngle3D(rightShoulder, rightHip, rightKnee);
+    
+            // validate front squat and side squat
+            // when do we have front squat?
+            const rotation = Math.abs(this.calculate3DBodyRotation(this.reader).rotation);
+            if (rotation >= 130 && rotation <= 185) {
+                console.log("Front squat detected");
+                this.validateFrontSquatForm(leftLegAngle, leftHipAngle, rightLegAngle, rightHipAngle);
+            } else if (rotation >= 75 && rotation <= 110) {
+                console.log("Side squat detected");
+                this.validateSideSquatForm(leftLegAngle, leftHipAngle, rightLegAngle, rightHipAngle);
+            }
         }
+    }
+
+    validateSideSquatForm(leftLegAngle, leftHipAngle, rightLegAngle, rightHipAngle) {
+        if (leftLegAngle && leftHipAngle) {
+            this.sideSquatStatus(leftLegAngle, leftHipAngle);
+        } else if (rightLegAngle && rightHipAngle) {
+            this.sideSquatStatus(rightLegAngle, rightHipAngle);
+        } else {
+            console.log("Insufficient data to validate side squat form.");
+            return;
+        }
+
+        // what else do we want to validate?
+        // is the person going too fast?
+        // what should happen if the exercise status is unknown? does that mean that the person has incorrect form?
     }
 
     determineAngleState(angle, validAngles) {
@@ -145,19 +108,23 @@ export class Squat extends Exercise {
         }
         return 'unknown';
     }
-
-    validateSideSquatForm(legAngle, hipAngle) {
+    
+    sideSquatStatus(legAngle, hipAngle) {
         const legState = this.determineAngleState(legAngle, VALID_LEG_ANGLES_SIDE);
         const hipState = this.determineAngleState(hipAngle, VALID_HIP_ANGLES_SIDE);
 
-        this.currentSquatState = legState === hipState ? legState : 'transition';
+        const newSquatState = legState === hipState ? legState : 'transition';
+        console.log("new squat state " + newSquatState);
+        
+        this.currentSquatState = newSquatState;
+        
         if (typeof this.exerciseStatus !== 'undefined') {
             this.exerciseStatus.className = `status exercise-status ${this.currentSquatState}`;
             this.exerciseStatus.textContent = this.currentSquatState;
-        }
+        }   
     }
-
+    
     validateFrontSquatForm(leftLegAngle, leftHipAngle, rightLegAngle, rightHipAngle) {
-        // TODO
+        this.poseData.textContent = `Left Leg: ${leftLegAngle?.toFixed(2)}, Left Hip: ${leftHipAngle?.toFixed(2)}, Right Leg: ${rightLegAngle?.toFixed(2)}, Right Hip: ${rightHipAngle?.toFixed(2)}`;
     }
 }
