@@ -23,6 +23,7 @@ const VALID_HIP_ANGLES_SIDE = {
         end: 85        // Deep squat bottom, maximum hip flexion
     }
 };
+
 const VALID_LEG_ANGLES_SIDE = {
     standing: {
         start: 170,
