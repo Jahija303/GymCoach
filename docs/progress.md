@@ -177,3 +177,6 @@ problems:
 todo:
 - We want to get a relatively confident 3D angle in order to implement any kind of safety measures for an excersize, otherwise the user would have to be perfectly facing the camera (front or side) which is not realistic to do.
 - We can still implement the validations in such a way that we do not tolerate some rotations, for example if the user is side facing then we can tolerate a little bit of rotation and still make valid suggestions, otherwise we can let the user know to face the side or the front for full validation.
+
+progress 2:
+- The problem lies in the body rotation angle and the body scale, how can we confidently calculate these two values ?
