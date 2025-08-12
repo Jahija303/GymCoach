@@ -165,3 +165,15 @@ progress:
 progress:
 - Today we tried to make calculate3DAngle method more accurate by normalizing the Z keypoint using the users body scale as a reference, however it still did not turn out as accurate as we hoped it would, we need to investigate this more
 - Refactored squat state validation from the side
+
+## 12.08.2025
+
+progress:
+- Today we are working on getting the correct angle in a 3D space based on a 2D image, to do this we are considering the body rotation and the length of the limbs in 2D instead of the Z points as they are too unpredictable. We managed to get an improved calculate3DAngle method, but it is still flaky.
+
+problems:
+- The current problem is that the body rotation is not reliable enough and that our method is too sensitive to any variations to body rotation.
+
+todo:
+- We want to get a relatively confident 3D angle in order to implement any kind of safety measures for an excersize, otherwise the user would have to be perfectly facing the camera (front or side) which is not realistic to do.
+- We can still implement the validations in such a way that we do not tolerate some rotations, for example if the user is side facing then we can tolerate a little bit of rotation and still make valid suggestions, otherwise we can let the user know to face the side or the front for full validation.
