@@ -93,15 +93,15 @@ export class Squat extends Exercise {
             // }
 
             const rotation = this.calculate3DBodyRotation().rotation;
-            console.log("Rotation: " + rotation?.toFixed(2));
-            console.log("leftForearm: ", this.bodyDimensions.leftForearm?.toFixed(2));
-            console.log("Left arm size " + this.bodyDimensions.leftArm?.toFixed(2))
-            console.log("LeftShoulder (x,y,visibility) " + `( ${leftShoulder.x?.toFixed(2)}, ${leftShoulder.y?.toFixed(2)}, ${leftShoulder.visibility?.toFixed(2)} )`);
-            console.log("LeftElbow (x,y,visibility) " + `( ${leftElbow.x?.toFixed(2)}, ${leftElbow.y?.toFixed(2)}, ${leftElbow.visibility?.toFixed(2)} )`);
-            console.log("LeftWrist (x,y,visibility) " + `( ${leftWrist.x?.toFixed(2)}, ${leftWrist.y?.toFixed(2)}, ${leftWrist.visibility?.toFixed(2)} )`);
-            // const rightArmAngle = this.calculateAngle3DAlternative(rightShoulder, rightElbow, rightWrist, this.bodyDimensions.rightArm, this.bodyDimensions.rightForearm, rotation);
-            const leftArmAngle = this.calculateAngle3DAlternative(leftShoulder, leftElbow, leftWrist, this.bodyDimensions.leftArm, this.bodyDimensions.leftForearm, rotation);
-            this.poseData.textContent = `Left Arm: ${leftArmAngle}`;
+            console.log("Rotation: " + rotation);
+            // console.log("leftForearm: ", this.bodyDimensions.leftForearm?.toFixed(2));
+            // console.log("Left arm size " + this.bodyDimensions.leftArm?.toFixed(2))
+            // console.log("LeftShoulder (x,y,visibility) " + `( ${leftShoulder.x?.toFixed(2)}, ${leftShoulder.y?.toFixed(2)}, ${leftShoulder.visibility?.toFixed(2)} )`);
+            // console.log("LeftElbow (x,y,visibility) " + `( ${leftElbow.x?.toFixed(2)}, ${leftElbow.y?.toFixed(2)}, ${leftElbow.visibility?.toFixed(2)} )`);
+            // console.log("LeftWrist (x,y,visibility) " + `( ${leftWrist.x?.toFixed(2)}, ${leftWrist.y?.toFixed(2)}, ${leftWrist.visibility?.toFixed(2)} )`);
+            // // const rightArmAngle = this.calculateAngle3DAlternative(rightShoulder, rightElbow, rightWrist, this.bodyDimensions.rightArm, this.bodyDimensions.rightForearm, rotation);
+            // const leftArmAngle = this.calculateAngle3DAlternative(leftShoulder, leftElbow, leftWrist, this.bodyDimensions.leftArm, this.bodyDimensions.leftForearm, rotation);
+            // this.poseData.textContent = `Left Arm: ${leftArmAngle}`;
         }
     }
 

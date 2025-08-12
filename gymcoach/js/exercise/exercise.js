@@ -12,8 +12,7 @@ export class Exercise {
         this.bodyDimensions = {};
     }
 
-    calculateBodyScale(landmarks) {
-        this.reader.setLandmarks(landmarks);
+    calculateBodyScale() {
         const leftShoulder = this.reader.getLandmark(LANDMARK.LEFT_SHOULDER);
         const rightShoulder = this.reader.getLandmark(LANDMARK.RIGHT_SHOULDER);
         const leftHip = this.reader.getLandmark(LANDMARK.LEFT_HIP);
@@ -26,7 +25,7 @@ export class Exercise {
         } else if (rightShoulder && rightHip) {
             bodyScale = Math.abs(rightShoulder.y - rightHip.y);
         }
-        
+        console.log("Body scale: " + Math.max(bodyScale, 0.1));
         return Math.max(bodyScale, 0.1);
     }
 
@@ -59,23 +58,9 @@ export class Exercise {
     }
 
     calculate3DBodyRotation() {
-        const leftShoulder = this.reader.getLandmark(LANDMARK.LEFT_SHOULDER);
-        const rightShoulder = this.reader.getLandmark(LANDMARK.RIGHT_SHOULDER);
-
-        if (!leftShoulder || !rightShoulder) {
-            return null;
-        }
-
-        const shoulderVector = {
-            x: rightShoulder.x - leftShoulder.x,
-            y: rightShoulder.y - leftShoulder.y,
-            z: rightShoulder.z - leftShoulder.z
-        };
-
-        const rotation = Math.abs(Math.atan2(shoulderVector.z, shoulderVector.x) * (180 / Math.PI));
-        const tilt = Math.atan2(shoulderVector.y, shoulderVector.x) * (180 / Math.PI);
-
-        return { rotation: rotation, tilt: tilt };
+        // TODO
+        // Calculate the body rotation based on the body scale 
+        // and the shoulder and hip distance
     }
 
     calculateAngle3D(point1, vertex, point2, previousAngle = null) {
@@ -126,7 +111,6 @@ export class Exercise {
         return Math.round(angleDegrees * 100) / 100;
     }
 
-    // Alternative approach using law of cosines (more direct for angle calculation)
     calculateAngle3DAlternative(point1, vertex, point2, limb1Length, limb2Length, bodyRotation) {
         if (!point1 || !vertex || !point2) {
             return null;
