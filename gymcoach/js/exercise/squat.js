@@ -55,33 +55,53 @@ export class Squat extends Exercise {
 
     validate(results) {
         if (results.landmarks && results.landmarks.length > 0) {
-            super.normalizeKeypoints(results); // Instantiate a reader with normalized keypoints
+            this.reader.setLandmarks(results?.landmarks[0]);
+            super.calibrateBodyDimensions();
+            // if (this.currentSquatState == "standing") {
+            //     super.calibrateBodyDimensions();
+            //     console.log(this.bodyDimensions)
+            // }
 
             const leftShoulder = this.reader.getLandmark(LANDMARK.LEFT_SHOULDER);
+            const leftElbow = this.reader.getLandmark(LANDMARK.LEFT_ELBOW);
+            const leftWrist = this.reader.getLandmark(LANDMARK.LEFT_WRIST);
             const leftHip = this.reader.getLandmark(LANDMARK.LEFT_HIP);
             const leftKnee = this.reader.getLandmark(LANDMARK.LEFT_KNEE);
             const leftAnkle = this.reader.getLandmark(LANDMARK.LEFT_ANKLE);
-            
+
             const rightShoulder = this.reader.getLandmark(LANDMARK.RIGHT_SHOULDER);
+            const rightElbow = this.reader.getLandmark(LANDMARK.RIGHT_ELBOW);
+            const rightWrist = this.reader.getLandmark(LANDMARK.RIGHT_WRIST);
             const rightHip = this.reader.getLandmark(LANDMARK.RIGHT_HIP);
             const rightKnee = this.reader.getLandmark(LANDMARK.RIGHT_KNEE);
             const rightAnkle = this.reader.getLandmark(LANDMARK.RIGHT_ANKLE);
 
-            const leftLegAngle = this.calculateAngle3D(leftHip, leftKnee, leftAnkle);
-            const rightLegAngle = this.calculateAngle3D(rightHip, rightKnee, rightAnkle);
-            const leftHipAngle = this.calculateAngle3D(leftShoulder, leftHip, leftKnee);
-            const rightHipAngle = this.calculateAngle3D(rightShoulder, rightHip, rightKnee);
+            // const leftLegAngle = this.calculateAngle3D(leftHip, leftKnee, leftAnkle);
+            // const rightLegAngle = this.calculateAngle3D(rightHip, rightKnee, rightAnkle);
+            // const leftHipAngle = this.calculateAngle3D(leftShoulder, leftHip, leftKnee);
+            // const rightHipAngle = this.calculateAngle3D(rightShoulder, rightHip, rightKnee);
     
-            // validate front squat and side squat
-            // when do we have front squat?
-            const rotation = Math.abs(this.calculate3DBodyRotation(this.reader).rotation);
-            if (rotation >= 130 && rotation <= 185) {
-                console.log("Front squat detected");
-                this.validateFrontSquatForm(leftLegAngle, leftHipAngle, rightLegAngle, rightHipAngle);
-            } else if (rotation >= 75 && rotation <= 110) {
-                console.log("Side squat detected");
-                this.validateSideSquatForm(leftLegAngle, leftHipAngle, rightLegAngle, rightHipAngle);
-            }
+            // // validate front squat and side squat
+            // // when do we have front squat?
+            // const rotation = Math.abs(this.calculate3DBodyRotation().rotation);
+            // if (rotation >= 130 && rotation <= 185) {
+            //     console.log("Front squat detected");
+            //     this.validateFrontSquatForm(leftLegAngle, leftHipAngle, rightLegAngle, rightHipAngle);
+            // } else if (rotation >= 75 && rotation <= 110) {
+            //     console.log("Side squat detected");
+            //     this.validateSideSquatForm(leftLegAngle, leftHipAngle, rightLegAngle, rightHipAngle);
+            // }
+
+            const rotation = this.calculate3DBodyRotation().rotation;
+            console.log("Rotation: " + rotation?.toFixed(2));
+            console.log("leftForearm: ", this.bodyDimensions.leftForearm?.toFixed(2));
+            console.log("Left arm size " + this.bodyDimensions.leftArm?.toFixed(2))
+            console.log("LeftShoulder (x,y,visibility) " + `( ${leftShoulder.x?.toFixed(2)}, ${leftShoulder.y?.toFixed(2)}, ${leftShoulder.visibility?.toFixed(2)} )`);
+            console.log("LeftElbow (x,y,visibility) " + `( ${leftElbow.x?.toFixed(2)}, ${leftElbow.y?.toFixed(2)}, ${leftElbow.visibility?.toFixed(2)} )`);
+            console.log("LeftWrist (x,y,visibility) " + `( ${leftWrist.x?.toFixed(2)}, ${leftWrist.y?.toFixed(2)}, ${leftWrist.visibility?.toFixed(2)} )`);
+            // const rightArmAngle = this.calculateAngle3DAlternative(rightShoulder, rightElbow, rightWrist, this.bodyDimensions.rightArm, this.bodyDimensions.rightForearm, rotation);
+            const leftArmAngle = this.calculateAngle3DAlternative(leftShoulder, leftElbow, leftWrist, this.bodyDimensions.leftArm, this.bodyDimensions.leftForearm, rotation);
+            this.poseData.textContent = `Left Arm: ${leftArmAngle}`;
         }
     }
 
@@ -108,7 +128,7 @@ export class Squat extends Exercise {
         }
         return 'unknown';
     }
-    
+
     sideSquatStatus(legAngle, hipAngle) {
         const legState = this.determineAngleState(legAngle, VALID_LEG_ANGLES_SIDE);
         const hipState = this.determineAngleState(hipAngle, VALID_HIP_ANGLES_SIDE);
@@ -123,7 +143,7 @@ export class Squat extends Exercise {
             this.exerciseStatus.textContent = this.currentSquatState;
         }   
     }
-    
+
     validateFrontSquatForm(leftLegAngle, leftHipAngle, rightLegAngle, rightHipAngle) {
         this.poseData.textContent = `Left Leg: ${leftLegAngle?.toFixed(2)}, Left Hip: ${leftHipAngle?.toFixed(2)}, Right Leg: ${rightLegAngle?.toFixed(2)}, Right Hip: ${rightHipAngle?.toFixed(2)}`;
     }

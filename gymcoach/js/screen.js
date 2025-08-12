@@ -17,7 +17,7 @@ let currentExercise = '';
 
 export function startFrameCapture() {
     let frameCount = 0;
-    
+
     let intervalId = setInterval(async () => {
         if (stream && localVideo.videoWidth > 0 && poseLandmarker && webcamRunning) {
             try {
