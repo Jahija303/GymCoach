@@ -93,21 +93,37 @@ export class Exercise {
         const leftHip = this.reader.getLandmark(LANDMARK.LEFT_HIP);
         const rightHip = this.reader.getLandmark(LANDMARK.RIGHT_HIP);
 
-        // Check if we have the required landmarks
-        if (!leftShoulder || !rightShoulder || !leftHip || !rightHip) {
+        // Check if we have the required shoulder landmarks
+        if (!leftShoulder || !rightShoulder) {
             return null;
         }
 
-        // Check visibility threshold
-        const avgVisibility = (leftShoulder.visibility + rightShoulder.visibility + 
-                            leftHip.visibility + rightHip.visibility) / 4;
-        if (avgVisibility < 0.7) {
+        // Check if hips are available
+        let hipsAvailable = leftHip && rightHip;
+        
+        // Check visibility threshold for shoulders (always required)
+        const shoulderVisibility = (leftShoulder.visibility + rightShoulder.visibility) / 2;
+        if (shoulderVisibility < 0.7) {
             return null;
+        }
+
+        // Check hip visibility if hips are available
+        if (hipsAvailable) {
+            const hipVisibility = (leftHip.visibility + rightHip.visibility) / 2;
+            if (hipVisibility < 0.7) {
+                // Hips not reliable, use shoulders only
+                hipsAvailable = false;
+            }
         }
 
         // Ensure we have reference distances from calibration
-        if (!this.shoulderDistanceRef || !this.hipDistanceRef || !this.bodyScaleRef) {
+        if (!this.shoulderDistanceRef || !this.bodyScaleRef) {
             return null; // Need to calibrate first
+        }
+        
+        // If we plan to use hips but don't have hip reference, fall back to shoulders only
+        if (hipsAvailable && !this.hipDistanceRef) {
+            hipsAvailable = false;
         }
 
         // Calculate current vertical scale (torso height) for normalization
@@ -125,27 +141,31 @@ export class Exercise {
             (rightShoulder.y - leftShoulder.y) ** 2
         );
 
-        // Calculate hip distance
-        const hipDistance = Math.sqrt(
-            (rightHip.x - leftHip.x) ** 2 + 
-            (rightHip.y - leftHip.y) ** 2
-        );
-
-        // Normalize current distances using vertical scale to account for depth changes
+        // Normalize shoulder distance using vertical scale
         const normalizedShoulderDistance = shoulderDistance * scaleRatio;
-        const normalizedHipDistance = hipDistance * scaleRatio;
-
-        // Calculate rotation angles based on normalized distance ratios
-        // Larger distance indicates facing camera (180°), smaller distance indicates side view (90°)
         const shoulderRatio = Math.min(1, normalizedShoulderDistance / this.shoulderDistanceRef);
-        const hipRatio = Math.min(1, normalizedHipDistance / this.hipDistanceRef);
-
-        // Convert ratios to angles: 1.0 ratio = 180°, 0.0 ratio = 90°
         const shoulderAngle = 90 + (shoulderRatio * 90); // Maps 0->90°, 1->180°
-        const hipAngle = 90 + (hipRatio * 90); // Maps 0->90°, 1->180°
 
-        // Weighted combination: shoulder distance (0.7) + hip distance (0.3)
-        let rotationDegrees = (shoulderAngle * 0.7) + (hipAngle * 0.3);
+        let rotationDegrees;
+
+        if (hipsAvailable) {
+            // Calculate hip distance
+            const hipDistance = Math.sqrt(
+                (rightHip.x - leftHip.x) ** 2 + 
+                (rightHip.y - leftHip.y) ** 2
+            );
+
+            // Normalize hip distance using vertical scale
+            const normalizedHipDistance = hipDistance * scaleRatio;
+            const hipRatio = Math.min(1, normalizedHipDistance / this.hipDistanceRef);
+            const hipAngle = 90 + (hipRatio * 90); // Maps 0->90°, 1->180°
+
+            // Weighted combination: shoulder distance (0.5) + hip distance (0.4)
+            rotationDegrees = (shoulderAngle * 0.5) + (hipAngle * 0.4);
+        } else {
+            // Use shoulders only
+            rotationDegrees = shoulderAngle;
+        }
 
         // Clamp rotation to reasonable range (90-180 degrees)
         rotationDegrees = Math.max(90, Math.min(180, rotationDegrees));
