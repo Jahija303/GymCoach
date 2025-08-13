@@ -1,32 +1,14 @@
 import { LANDMARK, LandmarkReader } from "../util/landmark_reader.js";
 
 export class Exercise {
-    DEFAULT_BODY_SCALE = 0.5;
-    SHOULDER_DISTANCE_THRESHOLD = 0.3;
-    HIP_DISTANCE_THRESHOLD = 0.18;
-
     constructor() {
         this.exerciseStatus = document.getElementById('exercise-status');
         this.reader = new LandmarkReader();
         this.poseData = document.getElementById('pose-data');
         this.bodyDimensions = null;
-    }
-
-    calculateBodyScale() {
-        const leftShoulder = this.reader.getLandmark(LANDMARK.LEFT_SHOULDER);
-        const rightShoulder = this.reader.getLandmark(LANDMARK.RIGHT_SHOULDER);
-        const leftHip = this.reader.getLandmark(LANDMARK.LEFT_HIP);
-        const rightHip = this.reader.getLandmark(LANDMARK.RIGHT_HIP);
-
-        let bodyScale = this.DEFAULT_BODY_SCALE;
-
-        if (leftShoulder && leftHip) {
-            bodyScale = Math.abs(leftShoulder.y - leftHip.y);
-        } else if (rightShoulder && rightHip) {
-            bodyScale = Math.abs(rightShoulder.y - rightHip.y);
-        }
-        console.log("Body scale: " + Math.max(bodyScale, 0.1));
-        return Math.max(bodyScale, 0.1);
+        this.shoulderDistanceRef = null;
+        this.hipDistanceRef = null;
+        this.bodyScaleRef = null;
     }
 
     calibrateBodyDimensions() {
@@ -53,6 +35,7 @@ export class Exercise {
             return;
         }
 
+        this.calculateBodyScaleRefs();
         this.bodyDimensions = {
             leftLegLength: this.calculateLength(LANDMARK.LEFT_KNEE, LANDMARK.LEFT_ANKLE),
             rightLegLength: this.calculateLength(LANDMARK.RIGHT_KNEE, LANDMARK.RIGHT_ANKLE),
@@ -80,10 +63,94 @@ export class Exercise {
         return Math.sqrt(dx * dx + dy * dy);
     }
 
+    calculateBodyScaleRefs() {
+        const leftShoulder = this.reader.getLandmark(LANDMARK.LEFT_SHOULDER);
+        const rightShoulder = this.reader.getLandmark(LANDMARK.RIGHT_SHOULDER);
+        const leftHip = this.reader.getLandmark(LANDMARK.LEFT_HIP);
+        const rightHip = this.reader.getLandmark(LANDMARK.RIGHT_HIP);
+        
+        this.shoulderDistanceRef = Math.sqrt(
+            (rightShoulder.x - leftShoulder.x) ** 2 + 
+            (rightShoulder.y - leftShoulder.y) ** 2
+        );
+        this.hipDistanceRef = Math.sqrt(
+            (rightHip.x - leftHip.x) ** 2 + 
+            (rightHip.y - leftHip.y) ** 2
+        );
+
+        let bodyScale = null;
+        if (leftShoulder && leftHip) {
+            bodyScale = Math.abs(leftShoulder.y - leftHip.y);
+        } else if (rightShoulder && rightHip) {
+            bodyScale = Math.abs(rightShoulder.y - rightHip.y);
+        }
+        this.bodyScaleRef = bodyScale;
+    }
+
     calculate3DBodyRotation() {
-        // TODO
-        // Calculate the body rotation based on the body scale 
-        // and the shoulder and hip distance
+        const leftShoulder = this.reader.getLandmark(LANDMARK.LEFT_SHOULDER);
+        const rightShoulder = this.reader.getLandmark(LANDMARK.RIGHT_SHOULDER);
+        const leftHip = this.reader.getLandmark(LANDMARK.LEFT_HIP);
+        const rightHip = this.reader.getLandmark(LANDMARK.RIGHT_HIP);
+
+        // Check if we have the required landmarks
+        if (!leftShoulder || !rightShoulder || !leftHip || !rightHip) {
+            return null;
+        }
+
+        // Check visibility threshold
+        const avgVisibility = (leftShoulder.visibility + rightShoulder.visibility + 
+                            leftHip.visibility + rightHip.visibility) / 4;
+        if (avgVisibility < 0.7) {
+            return null;
+        }
+
+        // Ensure we have reference distances from calibration
+        if (!this.shoulderDistanceRef || !this.hipDistanceRef || !this.bodyScaleRef) {
+            return null; // Need to calibrate first
+        }
+
+        // Calculate current vertical scale (torso height) for normalization
+        let currentBodyScale = null;
+        if (leftShoulder && leftHip) {
+            currentBodyScale = Math.abs(leftShoulder.y - leftHip.y);
+        } else if (rightShoulder && rightHip) {
+            currentBodyScale = Math.abs(rightShoulder.y - rightHip.y);
+        }
+        const scaleRatio = this.bodyScaleRef / currentBodyScale;
+
+        // Calculate shoulder distance
+        const shoulderDistance = Math.sqrt(
+            (rightShoulder.x - leftShoulder.x) ** 2 + 
+            (rightShoulder.y - leftShoulder.y) ** 2
+        );
+
+        // Calculate hip distance
+        const hipDistance = Math.sqrt(
+            (rightHip.x - leftHip.x) ** 2 + 
+            (rightHip.y - leftHip.y) ** 2
+        );
+
+        // Normalize current distances using vertical scale to account for depth changes
+        const normalizedShoulderDistance = shoulderDistance * scaleRatio;
+        const normalizedHipDistance = hipDistance * scaleRatio;
+
+        // Calculate rotation angles based on normalized distance ratios
+        // Larger distance indicates facing camera (180°), smaller distance indicates side view (90°)
+        const shoulderRatio = Math.min(1, normalizedShoulderDistance / this.shoulderDistanceRef);
+        const hipRatio = Math.min(1, normalizedHipDistance / this.hipDistanceRef);
+
+        // Convert ratios to angles: 1.0 ratio = 180°, 0.0 ratio = 90°
+        const shoulderAngle = 90 + (shoulderRatio * 90); // Maps 0->90°, 1->180°
+        const hipAngle = 90 + (hipRatio * 90); // Maps 0->90°, 1->180°
+
+        // Weighted combination: shoulder distance (0.7) + hip distance (0.3)
+        let rotationDegrees = (shoulderAngle * 0.7) + (hipAngle * 0.3);
+
+        // Clamp rotation to reasonable range (90-180 degrees)
+        rotationDegrees = Math.max(90, Math.min(180, rotationDegrees));
+
+        return Math.round(rotationDegrees * 100) / 100;
     }
 
     calculateAngle3D(point1, vertex, point2, previousAngle = null) {
