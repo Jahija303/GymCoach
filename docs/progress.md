@@ -180,3 +180,14 @@ todo:
 
 progress 2:
 - The problem lies in the body rotation angle and the body scale, how can we confidently calculate these two values ?
+
+## 13.08.2025
+
+todo:
+- We were thinking of adding a calibration button to retrieve all lengths between keypoints and use this as a reference to calculate body rotation and have better z values for our 3d angle method
+
+progress:
+- We implemented a calibration method which gets all keypoints and calculates limb length if all keypoints are visible (more than 0.85) which should help us get a correct z value and body rotation in order to validate any exercise with 3d angles
+
+brainstorming:
+- To improve the calibration method we can add an individual visibility value for all keypoints, for example shoulders and hips are priority and should be at least 0.9 while toes and heels might not be a priorty so they can be 0.6 or so

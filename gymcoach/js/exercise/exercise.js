@@ -9,7 +9,7 @@ export class Exercise {
         this.exerciseStatus = document.getElementById('exercise-status');
         this.reader = new LandmarkReader();
         this.poseData = document.getElementById('pose-data');
-        this.bodyDimensions = {};
+        this.bodyDimensions = null;
     }
 
     calculateBodyScale() {
@@ -30,6 +30,29 @@ export class Exercise {
     }
 
     calibrateBodyDimensions() {
+        // check if all keypoints are visible
+        // check if every keypoint has visibility > 0.9
+        // if these conditions are met, store the body dimensions
+        // otherwise write a message which keypoints are missing
+        this.exerciseStatus.textContent = "Calibrating...";
+        this.exerciseStatus.className = "status exercise-status calibrating";
+
+        const missingKeypoints = [];
+        for (const landmark of Object.values(LANDMARK)) {
+            const point = this.reader.getLandmark(landmark);
+            if (!point || point.visibility < 0.85) {
+                missingKeypoints.push(landmark);
+            }
+        }
+
+        if (missingKeypoints.length > 0) {
+            const missingKeypointNames = missingKeypoints.map(id => 
+                Object.keys(LANDMARK).find(key => LANDMARK[key] === id) || `Unknown(${id})`
+            );
+            console.log("Missing keypoints:", missingKeypointNames);
+            return;
+        }
+
         this.bodyDimensions = {
             leftLegLength: this.calculateLength(LANDMARK.LEFT_KNEE, LANDMARK.LEFT_ANKLE),
             rightLegLength: this.calculateLength(LANDMARK.RIGHT_KNEE, LANDMARK.RIGHT_ANKLE),
