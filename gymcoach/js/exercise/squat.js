@@ -99,8 +99,7 @@ export class Squat extends Exercise {
         //     this.validateSideSquatForm(leftLegAngle, leftHipAngle, rightLegAngle, rightHipAngle);
         // }
 
-        const rotation = this.calculate3DBodyRotation().rotation;
-        console.log("Rotation: " + rotation);
+        const rotation = this.calculate3DBodyRotation();
         // console.log("leftForearm: ", this.bodyDimensions.leftForearm?.toFixed(2));
         // console.log("Left arm size " + this.bodyDimensions.leftArm?.toFixed(2))
         // console.log("LeftShoulder (x,y,visibility) " + `( ${leftShoulder.x?.toFixed(2)}, ${leftShoulder.y?.toFixed(2)}, ${leftShoulder.visibility?.toFixed(2)} )`);
@@ -108,7 +107,7 @@ export class Squat extends Exercise {
         // console.log("LeftWrist (x,y,visibility) " + `( ${leftWrist.x?.toFixed(2)}, ${leftWrist.y?.toFixed(2)}, ${leftWrist.visibility?.toFixed(2)} )`);
         // // const rightArmAngle = this.calculateAngle3DAlternative(rightShoulder, rightElbow, rightWrist, this.bodyDimensions.rightArm, this.bodyDimensions.rightForearm, rotation);
         // const leftArmAngle = this.calculateAngle3DAlternative(leftShoulder, leftElbow, leftWrist, this.bodyDimensions.leftArm, this.bodyDimensions.leftForearm, rotation);
-        // this.poseData.textContent = `Left Arm: ${leftArmAngle}`;
+        this.poseData.textContent = `rotation: ${rotation}`;
     }
 
     validateSideSquatForm(leftLegAngle, leftHipAngle, rightLegAngle, rightHipAngle) {
