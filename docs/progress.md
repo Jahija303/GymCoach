@@ -192,3 +192,6 @@ progress:
 brainstorming:
 - To improve the calibration method we can add an individual visibility value for all keypoints, for example shoulders and hips are priority and should be at least 0.9 while toes and heels might not be a priorty so they can be 0.6 or so
 - To improve the body scale calculations we can consider the z values (roughly) to know if the user is rotated completely or not, if yes then the scale could be reduce by a few points for better accuracy
+
+progress:
+- With the calibration method we calculate the body scale and with it we are re-implementing the body rotation method, but it is still a work in progress
