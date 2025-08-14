@@ -78,150 +78,32 @@ export class Exercise {
             (rightHip.y - leftHip.y) ** 2
         );
 
-        let bodyScale = null;
-        if (leftShoulder && leftHip) {
-            bodyScale = Math.abs(leftShoulder.y - leftHip.y);
-        } else if (rightShoulder && rightHip) {
-            bodyScale = Math.abs(rightShoulder.y - rightHip.y);
-        }
-        this.bodyScaleRef = bodyScale;
+        const shoulderMidpointX = (leftShoulder.x + rightShoulder.x) / 2;
+        const shoulderMidpointY = (leftShoulder.y + rightShoulder.y) / 2;
+        const hipMidpointX = (leftHip.x + rightHip.x) / 2;
+        const hipMidpointY = (leftHip.y + rightHip.y) / 2;
+        
+        this.bodyScaleRef = Math.sqrt(
+            (shoulderMidpointX - hipMidpointX) ** 2 + 
+            (shoulderMidpointY - hipMidpointY) ** 2
+        );
     }
 
     calculate3DBodyRotation() {
-        const leftShoulder = this.reader.getLandmark(LANDMARK.LEFT_SHOULDER);
-        const rightShoulder = this.reader.getLandmark(LANDMARK.RIGHT_SHOULDER);
-        const leftHip = this.reader.getLandmark(LANDMARK.LEFT_HIP);
-        const rightHip = this.reader.getLandmark(LANDMARK.RIGHT_HIP);
-
-        // Check if we have the required shoulder landmarks
-        if (!leftShoulder || !rightShoulder) {
-            return null;
-        }
-
-        // Check if hips are available
-        let hipsAvailable = leftHip && rightHip;
-        
-        // Check visibility threshold for shoulders (always required)
-        const shoulderVisibility = (leftShoulder.visibility + rightShoulder.visibility) / 2;
-        if (shoulderVisibility < 0.7) {
-            return null;
-        }
-
-        // Check hip visibility if hips are available
-        if (hipsAvailable) {
-            const hipVisibility = (leftHip.visibility + rightHip.visibility) / 2;
-            if (hipVisibility < 0.7) {
-                // Hips not reliable, use shoulders only
-                hipsAvailable = false;
-            }
-        }
-
-        // Ensure we have reference distances from calibration
-        if (!this.shoulderDistanceRef || !this.bodyScaleRef) {
-            return null; // Need to calibrate first
-        }
-        
-        // If we plan to use hips but don't have hip reference, fall back to shoulders only
-        if (hipsAvailable && !this.hipDistanceRef) {
-            hipsAvailable = false;
-        }
-
-        // Calculate current vertical scale (torso height) for normalization
-        let currentBodyScale = null;
-        if (leftShoulder && leftHip) {
-            currentBodyScale = Math.abs(leftShoulder.y - leftHip.y);
-        } else if (rightShoulder && rightHip) {
-            currentBodyScale = Math.abs(rightShoulder.y - rightHip.y);
-        }
-        const scaleRatio = this.bodyScaleRef / currentBodyScale;
-
-        // Calculate shoulder distance
-        const shoulderDistance = Math.sqrt(
-            (rightShoulder.x - leftShoulder.x) ** 2 + 
-            (rightShoulder.y - leftShoulder.y) ** 2
-        );
-
-        // Normalize shoulder distance using vertical scale
-        const normalizedShoulderDistance = shoulderDistance * scaleRatio;
-        const shoulderRatio = Math.min(1, normalizedShoulderDistance / this.shoulderDistanceRef);
-        const shoulderAngle = 90 + (shoulderRatio * 90); // Maps 0->90°, 1->180°
-
-        let rotationDegrees;
-
-        if (hipsAvailable) {
-            // Calculate hip distance
-            const hipDistance = Math.sqrt(
-                (rightHip.x - leftHip.x) ** 2 + 
-                (rightHip.y - leftHip.y) ** 2
-            );
-
-            // Normalize hip distance using vertical scale
-            const normalizedHipDistance = hipDistance * scaleRatio;
-            const hipRatio = Math.min(1, normalizedHipDistance / this.hipDistanceRef);
-            const hipAngle = 90 + (hipRatio * 90); // Maps 0->90°, 1->180°
-
-            // Weighted combination: shoulder distance (0.5) + hip distance (0.4)
-            rotationDegrees = (shoulderAngle * 0.5) + (hipAngle * 0.4);
-        } else {
-            // Use shoulders only
-            rotationDegrees = shoulderAngle;
-        }
-
-        // Clamp rotation to reasonable range (90-180 degrees)
-        rotationDegrees = Math.max(90, Math.min(180, rotationDegrees));
-
-        return Math.round(rotationDegrees * 100) / 100;
+        // TODO
+        // Math formula to calculate body rotation
+        // The variables I have are:
+        // - Shoulder distance (reference)
+        // - Hip distance (reference)
+        // - Distance between shoulder midpoint and hip midpoint (reference)
+        // - Shoulder distance (current)
+        // - Hip distance (current)
+        // - Distance between shoulder midpoint and hip midpoint (current)
+        // How to get the body rotation, in degrees from these inputs, while using the reference values
+        // as a baseline, we assume that the reference lengths are calculated when the body is directly facing the camera
     }
 
-    calculateAngle3D(point1, vertex, point2, previousAngle = null) {
-        if (!point1 || !vertex || !point2) {
-            return null;
-        }
-
-        const avgConfidence = (point1.visibility + vertex.visibility + point2.visibility) / 3;
-        if (avgConfidence < 0.7) {
-            return null;
-        }
-
-        const vector1 = {
-            x: point1.x - vertex.x,
-            y: point1.y - vertex.y,
-            z: point1.z - vertex.z
-        };
-
-        const vector2 = {
-            x: point2.x - vertex.x,
-            y: point2.y - vertex.y,
-            z: point2.z - vertex.z
-        };
-
-        const dotProduct = vector1.x * vector2.x + vector1.y * vector2.y + vector1.z * vector2.z;
-
-        const magnitude1 = Math.sqrt(vector1.x ** 2 + vector1.y ** 2 + vector1.z ** 2);
-        const magnitude2 = Math.sqrt(vector2.x ** 2 + vector2.y ** 2 + vector2.z ** 2);
-
-        if (magnitude1 === 0 || magnitude2 === 0) {
-            return null;
-        }
-
-        const cosAngle = dotProduct / (magnitude1 * magnitude2);
-        const angleRadians = Math.acos(Math.max(-1, Math.min(1, cosAngle))); // Clamp to avoid NaN
-        let angleDegrees = angleRadians * (180 / Math.PI);
-
-        if (angleDegrees < 10 || angleDegrees > 180) {
-            return null; // Anatomically impossible angle
-        }
-
-        // Add temporal smoothing if previous angle is available
-        if (previousAngle !== null && Math.abs(angleDegrees - previousAngle) < 45) {
-            const smoothingFactor = 0.7;
-            angleDegrees = previousAngle * smoothingFactor + angleDegrees * (1 - smoothingFactor);
-        }
-
-        return Math.round(angleDegrees * 100) / 100;
-    }
-
-    calculateAngle3DAlternative(point1, vertex, point2, limb1Length, limb2Length, bodyRotation) {
+    calculateAngle3D(point1, vertex, point2, limb1Length, limb2Length, bodyRotation) {
         if (!point1 || !vertex || !point2) {
             return null;
         }
