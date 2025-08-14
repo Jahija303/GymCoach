@@ -90,18 +90,122 @@ export class Exercise {
     }
 
     calculate3DBodyRotation() {
-        // TODO
-        // Math formula to calculate body rotation
-        // The variables I have are:
-        // - Shoulder distance (reference)
-        // - Hip distance (reference)
-        // - Distance between shoulder midpoint and hip midpoint (reference)
-        // - Shoulder distance (current)
-        // - Hip distance (current)
-        // - Distance between shoulder midpoint and hip midpoint (current)
-        // How to get the body rotation, in degrees from these inputs, while using the reference values
-        // as a baseline, we assume that the reference lengths are calculated when the body is directly facing the camera
+        if (!this.shoulderDistanceRef || !this.hipDistanceRef || !this.bodyScaleRef) {
+                return 0; // No reference data available
+            }
+
+            // Get current landmark positions
+            const leftShoulder = this.reader.getLandmark(LANDMARK.LEFT_SHOULDER);
+            const rightShoulder = this.reader.getLandmark(LANDMARK.RIGHT_SHOULDER);
+            const leftHip = this.reader.getLandmark(LANDMARK.LEFT_HIP);
+            const rightHip = this.reader.getLandmark(LANDMARK.RIGHT_HIP);
+                
+            if (!leftShoulder || !rightShoulder || !leftHip || !rightHip) {
+                return 0; // Missing landmarks
+            }
+
+            // Calculate current distances
+            const currentShoulderDistance = Math.sqrt(
+                (rightShoulder.x - leftShoulder.x) ** 2 + 
+                (rightShoulder.y - leftShoulder.y) ** 2
+            );
+            const currentHipDistance = Math.sqrt(
+                (rightHip.x - leftHip.x) ** 2 + 
+                (rightHip.y - leftHip.y) ** 2
+            );
+
+            // Calculate body scale (distance between midpoints)
+            const shoulderMidX = (leftShoulder.x + rightShoulder.x) / 2;
+            const shoulderMidY = (leftShoulder.y + rightShoulder.y) / 2;
+            const hipMidX = (leftHip.x + rightHip.x) / 2;
+            const hipMidY = (leftHip.y + rightHip.y) / 2;
+            
+            const currentBodyScale = Math.sqrt(
+                (shoulderMidX - hipMidX) ** 2 + 
+                (shoulderMidY - hipMidY) ** 2
+            );
+
+            // SCALE NORMALIZATION: Adjust distances based on body scale change
+            const scaleRatio = currentBodyScale / this.bodyScaleRef;
+            
+            // What the shoulder/hip distances SHOULD be if only scale changed (no rotation)
+            const expectedShoulderDistance = this.shoulderDistanceRef * scaleRatio;
+            const expectedHipDistance = this.hipDistanceRef * scaleRatio;
+            
+            // Calculate compression ratios AFTER removing scale effects
+            const shoulderCompressionRatio = currentShoulderDistance / expectedShoulderDistance;
+            const hipCompressionRatio = currentHipDistance / expectedHipDistance;
+            
+            // Use the average of both ratios for stability, but weight shoulders more
+            const avgCompressionRatio = (shoulderCompressionRatio * 0.6 + hipCompressionRatio * 0.4);
+            
+            // Clamp to valid range for acos (allow for measurement noise)
+            const clampedRatio = Math.max(0.05, Math.min(1.0, avgCompressionRatio));
+            
+            // Convert to rotation angle
+            const rotationRadians = Math.acos(clampedRatio);
+            let rotationDegrees = rotationRadians * (180 / Math.PI);
+            
+            // IMPROVED LEFT/RIGHT DIRECTION DETECTION
+            // Method: Use the body axis orientation
+            
+            // Calculate body axis vector (from hip midpoint to shoulder midpoint)
+            const bodyAxisX = shoulderMidX - hipMidX;
+            const bodyAxisY = shoulderMidY - hipMidY;
+            
+            // Calculate shoulder vector (from left to right shoulder)
+            const shoulderVectorX = rightShoulder.x - leftShoulder.x;
+            const shoulderVectorY = rightShoulder.y - leftShoulder.y;
+            
+            // Calculate hip vector (from left to right hip)
+            const hipVectorX = rightHip.x - leftHip.x;
+            const hipVectorY = rightHip.y - leftHip.y;
+            
+            // Cross product to determine orientation (2D cross product = z component of 3D cross)
+            // Positive = counter-clockwise rotation = left turn
+            // Negative = clockwise rotation = right turn
+            const shoulderCross = bodyAxisX * shoulderVectorY - bodyAxisY * shoulderVectorX;
+            const hipCross = bodyAxisX * hipVectorY - bodyAxisY * hipVectorX;
+            
+            // Average the cross products for stability
+            const avgCross = (shoulderCross + hipCross) / 2;
+            
+            // Determine rotation direction
+            // If body is rotated, the cross product will deviate from the reference
+            let rotationSign = 1;
+            
+            // Only apply rotation if there's significant compression (avoid noise when facing camera)
+            if (avgCompressionRatio < 0.95) {  // Only when there's actual rotation
+                // Additional method: Check relative positions
+                // When turning right: left landmarks move toward center more than right landmarks
+                // When turning left: right landmarks move toward center more than left landmarks
+                
+                const leftShoulderRelX = leftShoulder.x - shoulderMidX;
+                const rightShoulderRelX = rightShoulder.x - shoulderMidX;
+                const leftHipRelX = leftHip.x - hipMidX;
+                const rightHipRelX = rightHip.x - hipMidX;
+                
+                // Calculate how much each side has moved toward the center
+                const leftSideCompression = Math.abs(leftShoulderRelX) + Math.abs(leftHipRelX);
+                const rightSideCompression = Math.abs(rightShoulderRelX) + Math.abs(rightHipRelX);
+                
+                // If left side is more compressed, person is turning right (left side goes toward back)
+                // If right side is more compressed, person is turning left (right side goes toward back)
+                const compressionDiff = leftSideCompression - rightSideCompression;
+                
+                if (Math.abs(compressionDiff) > 0.01) {  // Threshold to avoid noise
+                    rotationSign = compressionDiff < 0 ? 1 : -1;  // Left compressed = right turn (+)
+                }
+            } else {
+                // If facing camera (little compression), return near zero
+                rotationDegrees *= avgCompressionRatio;  // Scale down the angle
+            }
+            
+            const finalRotation = rotationDegrees * rotationSign;
+            
+            return Math.round(finalRotation * 100) / 100;
     }
+
 
     calculateAngle3D(point1, vertex, point2, limb1Length, limb2Length, bodyRotation) {
         if (!point1 || !vertex || !point2) {
