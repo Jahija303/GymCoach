@@ -20,7 +20,22 @@ export class Exercise {
         this.exerciseStatus.className = "status exercise-status calibrating";
 
         const missingKeypoints = [];
-        for (const landmark of Object.values(LANDMARK)) {
+        const coreBodyLandmarks = [
+            LANDMARK.LEFT_SHOULDER,
+            LANDMARK.RIGHT_SHOULDER,
+            LANDMARK.LEFT_ELBOW,
+            LANDMARK.RIGHT_ELBOW,
+            LANDMARK.LEFT_WRIST,
+            LANDMARK.RIGHT_WRIST,
+            LANDMARK.LEFT_HIP,
+            LANDMARK.RIGHT_HIP,
+            LANDMARK.LEFT_KNEE,
+            LANDMARK.RIGHT_KNEE,
+            LANDMARK.LEFT_ANKLE,
+            LANDMARK.RIGHT_ANKLE
+        ];
+        
+        for (const landmark of coreBodyLandmarks) {
             const point = this.reader.getLandmark(landmark);
             if (!point || point.visibility < 0.85) {
                 missingKeypoints.push(landmark);
@@ -94,17 +109,15 @@ export class Exercise {
                 return 0; // No reference data available
             }
 
-            // Get current landmark positions
             const leftShoulder = this.reader.getLandmark(LANDMARK.LEFT_SHOULDER);
             const rightShoulder = this.reader.getLandmark(LANDMARK.RIGHT_SHOULDER);
             const leftHip = this.reader.getLandmark(LANDMARK.LEFT_HIP);
             const rightHip = this.reader.getLandmark(LANDMARK.RIGHT_HIP);
                 
             if (!leftShoulder || !rightShoulder || !leftHip || !rightHip) {
-                return 0; // Missing landmarks
+                return 0;
             }
 
-            // Calculate current distances
             const currentShoulderDistance = Math.sqrt(
                 (rightShoulder.x - leftShoulder.x) ** 2 + 
                 (rightShoulder.y - leftShoulder.y) ** 2
@@ -114,7 +127,6 @@ export class Exercise {
                 (rightHip.y - leftHip.y) ** 2
             );
 
-            // Calculate body scale (distance between midpoints)
             const shoulderMidX = (leftShoulder.x + rightShoulder.x) / 2;
             const shoulderMidY = (leftShoulder.y + rightShoulder.y) / 2;
             const hipMidX = (leftHip.x + rightHip.x) / 2;
@@ -125,55 +137,22 @@ export class Exercise {
                 (shoulderMidY - hipMidY) ** 2
             );
 
-            // SCALE NORMALIZATION: Adjust distances based on body scale change
             const scaleRatio = currentBodyScale / this.bodyScaleRef;
-            
-            // What the shoulder/hip distances SHOULD be if only scale changed (no rotation)
             const expectedShoulderDistance = this.shoulderDistanceRef * scaleRatio;
             const expectedHipDistance = this.hipDistanceRef * scaleRatio;
-            
-            // Calculate compression ratios AFTER removing scale effects
+
             const shoulderCompressionRatio = currentShoulderDistance / expectedShoulderDistance;
             const hipCompressionRatio = currentHipDistance / expectedHipDistance;
-            
-            // Use the average of both ratios for stability, but weight shoulders more
             const avgCompressionRatio = (shoulderCompressionRatio * 0.6 + hipCompressionRatio * 0.4);
-            
-            // Clamp to valid range for acos (allow for measurement noise)
             const clampedRatio = Math.max(0.05, Math.min(1.0, avgCompressionRatio));
-            
-            // Convert to rotation angle
+
             const rotationRadians = Math.acos(clampedRatio);
             let rotationDegrees = rotationRadians * (180 / Math.PI);
-            
-            // IMPROVED LEFT/RIGHT DIRECTION DETECTION
-            // Method: Use the body axis orientation
-            
-            // Calculate body axis vector (from hip midpoint to shoulder midpoint)
-            const bodyAxisX = shoulderMidX - hipMidX;
-            const bodyAxisY = shoulderMidY - hipMidY;
-            
-            // Calculate shoulder vector (from left to right shoulder)
-            const shoulderVectorX = rightShoulder.x - leftShoulder.x;
-            const shoulderVectorY = rightShoulder.y - leftShoulder.y;
-            
-            // Calculate hip vector (from left to right hip)
-            const hipVectorX = rightHip.x - leftHip.x;
-            const hipVectorY = rightHip.y - leftHip.y;
-            
-            // Cross product to determine orientation (2D cross product = z component of 3D cross)
-            // Positive = counter-clockwise rotation = left turn
-            // Negative = clockwise rotation = right turn
-            const shoulderCross = bodyAxisX * shoulderVectorY - bodyAxisY * shoulderVectorX;
-            const hipCross = bodyAxisX * hipVectorY - bodyAxisY * hipVectorX;
-            
-            // Average the cross products for stability
-            const avgCross = (shoulderCross + hipCross) / 2;
-            
+
             // Determine rotation direction
             // If body is rotated, the cross product will deviate from the reference
             let rotationSign = 1;
-            
+
             // Only apply rotation if there's significant compression (avoid noise when facing camera)
             if (avgCompressionRatio < 0.95) {  // Only when there's actual rotation
                 // Additional method: Check relative positions

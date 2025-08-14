@@ -195,3 +195,14 @@ brainstorming:
 
 progress:
 - With the calibration method we calculate the body scale and with it we are re-implementing the body rotation method, but it is still a work in progress
+
+## 14.08.2025
+
+progress:
+- We have tried again to improve the 3d body rotation calculations as we thought it will be the best way to get valid 3d joint angles, but we simply cannot make this work in a reliable way for three reasons: 1. the z value is too unreliable to have much weight in the final calculation (if we had reliable z it would be easy to calcualte), 2. The 2D calculations have a limitation where it's not sensitive to smaller changes and does not perfectly detect full 90 degree rotation 3. There is also a problem with body scaling as well which offsets the final calculations when the users moves to/away the camera.
+- We had a working solution which gets the rotation angle relatively correct, however it had an issue with the body scaling, which offsets the values, and we cannot expect the user to calibrate and do the exercies in the same exact position each time.
+
+problems:
+- The general idea was: In order to validate proper squat form, we need to consider both front and side directions (front for knee positions and side for knee, hip and back bending angles) and to try and consider both at once, because the user might be doing the squat correctly from the side, but incorrectly from the front, so we cannot tell for sure that his form is correct (only if he does it twice for each side, but it sounds a bit stupid)
+- In order to consider both at the same time, we need to get the joint angle in a 3D space. We tried doing this with only z values but failed, we tried to calculate the body rotation but failed as well. We simply cannot get a reliable rotation angle from the resulting keypoints we receive, we mentioned the problems we faced with these calculations in the previous text.
+- How else can we validate a proper form ?
