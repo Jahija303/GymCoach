@@ -162,11 +162,15 @@ progress:
 
 ## 11.08.2025
 
+task: 231-basic-exercise-form-calculation
+
 progress:
 - Today we tried to make calculate3DAngle method more accurate by normalizing the Z keypoint using the users body scale as a reference, however it still did not turn out as accurate as we hoped it would, we need to investigate this more
 - Refactored squat state validation from the side
 
 ## 12.08.2025
+
+task: 231-basic-exercise-form-calculation
 
 progress:
 - Today we are working on getting the correct angle in a 3D space based on a 2D image, to do this we are considering the body rotation and the length of the limbs in 2D instead of the Z points as they are too unpredictable. We managed to get an improved calculate3DAngle method, but it is still flaky.
@@ -183,6 +187,8 @@ progress 2:
 
 ## 13.08.2025
 
+task: 231-basic-exercise-form-calculation
+
 todo:
 - We were thinking of adding a calibration button to retrieve all lengths between keypoints and use this as a reference to calculate body rotation and have better z values for our 3d angle method
 
@@ -198,6 +204,8 @@ progress:
 
 ## 14.08.2025
 
+task: 231-basic-exercise-form-calculation
+
 progress:
 - We have tried again to improve the 3d body rotation calculations as we thought it will be the best way to get valid 3d joint angles, but we simply cannot make this work in a reliable way for three reasons: 1. the z value is too unreliable to have much weight in the final calculation (if we had reliable z it would be easy to calcualte), 2. The 2D calculations have a limitation where it's not sensitive to smaller changes and does not perfectly detect full 90 degree rotation 3. There is also a problem with body scaling as well which offsets the final calculations when the users moves to/away the camera.
 - We had a working solution which gets the rotation angle relatively correct, however it had an issue with the body scaling, which offsets the values, and we cannot expect the user to calibrate and do the exercies in the same exact position each time.
@@ -206,3 +214,9 @@ problems:
 - The general idea was: In order to validate proper squat form, we need to consider both front and side directions (front for knee positions and side for knee, hip and back bending angles) and to try and consider both at once, because the user might be doing the squat correctly from the side, but incorrectly from the front, so we cannot tell for sure that his form is correct (only if he does it twice for each side, but it sounds a bit stupid)
 - In order to consider both at the same time, we need to get the joint angle in a 3D space. We tried doing this with only z values but failed, we tried to calculate the body rotation but failed as well. We simply cannot get a reliable rotation angle from the resulting keypoints we receive, we mentioned the problems we faced with these calculations in the previous text.
 - How else can we validate a proper form ?
+
+next:
+- Squat will be validated from the front and the side separately. The user will have a disclaimer that gives information which side is being validated and their limitations (cannot completely validate knee position if viewing from one side)
+- Complete the front squat validation based on visible keypoints/angles. Mostly focus on knee positioning.
+- Update the UI: Display current squat state (standing, halfSquat...), next squat state, tips on what to do to get to next squat state (bend knees more), rep counter (only counts rep if all states reached), rep speed (are they going too fast)
+- Finnaly research ML models and how can they help us validate the exercise even further.
