@@ -45,7 +45,7 @@ export class Exercise {
             const missingKeypointNames = missingKeypoints.map(id => 
                 Object.keys(LANDMARK).find(key => LANDMARK[key] === id) || `Unknown(${id})`
             );
-            console.log("Missing keypoints:", missingKeypointNames);
+            // console.log("Missing keypoints:", missingKeypointNames);
             return;
         }
 
