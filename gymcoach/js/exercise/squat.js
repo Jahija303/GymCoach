@@ -46,7 +46,6 @@ const VALID_LEG_ANGLES_SIDE = {
         end: 90        // Maximum knee flexion at bottom
     }
 };
-
 export class Squat extends Exercise {
     constructor() {
         super();
@@ -62,10 +61,10 @@ export class Squat extends Exercise {
             return;
         }
 
-        // if (this.bodyDimensions == null){
-        //     super.calibrateBodyDimensions();
-        //     return;
-        // }
+        if (this.bodyDimensions == null){
+            super.calibrateBodyDimensions();
+            return;
+        }
 
         this.exerciseStatus.textContent = "Validating squat form...";
         this.exerciseStatus.className = "status exercise-status";
@@ -88,7 +87,7 @@ export class Squat extends Exercise {
         const rotation = Math.abs(this.calculate3DBodyRotation().rotation);
         if (rotation >= 130 && rotation <= 185) {
             console.log("Front squat detected");
-            this.validateFrontSquatForm(leftLegAngle, leftHipAngle, rightLegAngle, rightHipAngle);
+            this.validateFrontSquatForm(leftHip, leftKnee, leftAnkle, rightHip, rightKnee, rightAnkle);
         } else if (rotation >= 75 && rotation <= 110) {
             console.log("Side squat detected");
             this.validateSideSquatForm(leftLegAngle, leftHipAngle, rightLegAngle, rightHipAngle);
@@ -133,7 +132,11 @@ export class Squat extends Exercise {
         }
     }
 
-    validateFrontSquatForm(leftLegAngle, leftHipAngle, rightLegAngle, rightHipAngle) {
-        // this.poseData.textContent = `Left Leg: ${leftLegAngle?.toFixed(2)}, Left Hip: ${leftHipAngle?.toFixed(2)}, Right Leg: ${rightLegAngle?.toFixed(2)}, Right Hip: ${rightHipAngle?.toFixed(2)}`;
+    validateFrontSquatForm(leftHip, leftKnee, leftAnkle, rightHip, rightKnee, rightAnkle) {
+        // TODO
+        // Lets first determine the knee positioning and if the user is at risk of injury
+        // If the knees are positioned too much towards the inside or too much towards the outside
+        // we want to show a warning to the user
+        // when this is done, is there something else we can check from a similar position
     }
 }
