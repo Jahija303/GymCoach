@@ -10,59 +10,59 @@ export class Exercise {
         this.DEFAULT_BODY_SCALE = 1.0;
     }
 
-    // calibrateBodyDimensions() {
-    //     // check if all keypoints are visible
-    //     // check if every keypoint has visibility > 0.9
-    //     // if these conditions are met, store the body dimensions
-    //     // otherwise write a message which keypoints are missing
-    //     this.exerciseStatus.textContent = "Calibrating...";
-    //     this.exerciseStatus.className = "status exercise-status calibrating";
+    calibrateBodyDimensions() {
+        // check if all keypoints are visible
+        // check if every keypoint has visibility > 0.9
+        // if these conditions are met, store the body dimensions
+        // otherwise write a message which keypoints are missing
+        this.exerciseStatus.textContent = "Calibrating...";
+        this.exerciseStatus.className = "status exercise-status calibrating";
 
-    //     const missingKeypoints = [];
-    //     const coreBodyLandmarks = [
-    //         LANDMARK.LEFT_SHOULDER,
-    //         LANDMARK.RIGHT_SHOULDER,
-    //         LANDMARK.LEFT_ELBOW,
-    //         LANDMARK.RIGHT_ELBOW,
-    //         LANDMARK.LEFT_WRIST,
-    //         LANDMARK.RIGHT_WRIST,
-    //         LANDMARK.LEFT_HIP,
-    //         LANDMARK.RIGHT_HIP,
-    //         LANDMARK.LEFT_KNEE,
-    //         LANDMARK.RIGHT_KNEE,
-    //         LANDMARK.LEFT_ANKLE,
-    //         LANDMARK.RIGHT_ANKLE
-    //     ];
+        const missingKeypoints = [];
+        const coreBodyLandmarks = [
+            LANDMARK.LEFT_SHOULDER,
+            LANDMARK.RIGHT_SHOULDER,
+            LANDMARK.LEFT_ELBOW,
+            LANDMARK.RIGHT_ELBOW,
+            LANDMARK.LEFT_WRIST,
+            LANDMARK.RIGHT_WRIST,
+            LANDMARK.LEFT_HIP,
+            LANDMARK.RIGHT_HIP,
+            LANDMARK.LEFT_KNEE,
+            LANDMARK.RIGHT_KNEE,
+            LANDMARK.LEFT_ANKLE,
+            LANDMARK.RIGHT_ANKLE
+        ];
 
-    //     for (const landmark of coreBodyLandmarks) {
-    //         const point = this.reader.getLandmark(landmark);
-    //         if (!point || point.visibility < 0.85) {
-    //             missingKeypoints.push(landmark);
-    //         }
-    //     }
+        for (const landmark of coreBodyLandmarks) {
+            const point = this.reader.getLandmark(landmark);
+            if (!point || point.visibility < 0.85) {
+                missingKeypoints.push(landmark);
+            }
+        }
 
-    //     if (missingKeypoints.length > 0) {
-    //         const missingKeypointNames = missingKeypoints.map(id => 
-    //             Object.keys(LANDMARK).find(key => LANDMARK[key] === id) || `Unknown(${id})`
-    //         );
-    //         console.log("Missing keypoints:", missingKeypointNames);
-    //         return;
-    //     }
+        if (missingKeypoints.length > 0) {
+            const missingKeypointNames = missingKeypoints.map(id => 
+                Object.keys(LANDMARK).find(key => LANDMARK[key] === id) || `Unknown(${id})`
+            );
+            console.log("Missing keypoints:", missingKeypointNames);
+            return;
+        }
 
-    //     this.bodyScaleRef = this.calculateBodyScale();
-    //     this.bodyDimensions = {
-    //         leftLegLength: this.calculateLength(LANDMARK.LEFT_KNEE, LANDMARK.LEFT_ANKLE),
-    //         rightLegLength: this.calculateLength(LANDMARK.RIGHT_KNEE, LANDMARK.RIGHT_ANKLE),
-    //         leftThighLength: this.calculateLength(LANDMARK.LEFT_HIP, LANDMARK.LEFT_KNEE),
-    //         rightThighLength: this.calculateLength(LANDMARK.RIGHT_HIP, LANDMARK.RIGHT_KNEE),
-    //         leftTorso: this.calculateLength(LANDMARK.LEFT_SHOULDER, LANDMARK.LEFT_HIP),
-    //         rightTorso: this.calculateLength(LANDMARK.RIGHT_SHOULDER, LANDMARK.RIGHT_HIP),
-    //         leftArm: this.calculateLength(LANDMARK.LEFT_SHOULDER, LANDMARK.LEFT_ELBOW),
-    //         rightArm: this.calculateLength(LANDMARK.RIGHT_SHOULDER, LANDMARK.RIGHT_ELBOW),
-    //         leftForearm: this.calculateLength(LANDMARK.LEFT_ELBOW, LANDMARK.LEFT_WRIST),
-    //         rightForearm: this.calculateLength(LANDMARK.RIGHT_ELBOW, LANDMARK.RIGHT_WRIST)
-    //     };
-    // }
+        this.bodyScaleRef = this.calculateBodyScale();
+        this.bodyDimensions = {
+            leftShinLength: this.calculateLength(LANDMARK.LEFT_KNEE, LANDMARK.LEFT_ANKLE),
+            rightShinLength: this.calculateLength(LANDMARK.RIGHT_KNEE, LANDMARK.RIGHT_ANKLE),
+            leftThighLength: this.calculateLength(LANDMARK.LEFT_HIP, LANDMARK.LEFT_KNEE),
+            rightThighLength: this.calculateLength(LANDMARK.RIGHT_HIP, LANDMARK.RIGHT_KNEE),
+            leftTorso: this.calculateLength(LANDMARK.LEFT_SHOULDER, LANDMARK.LEFT_HIP),
+            rightTorso: this.calculateLength(LANDMARK.RIGHT_SHOULDER, LANDMARK.RIGHT_HIP),
+            leftArm: this.calculateLength(LANDMARK.LEFT_SHOULDER, LANDMARK.LEFT_ELBOW),
+            rightArm: this.calculateLength(LANDMARK.RIGHT_SHOULDER, LANDMARK.RIGHT_ELBOW),
+            leftForearm: this.calculateLength(LANDMARK.LEFT_ELBOW, LANDMARK.LEFT_WRIST),
+            rightForearm: this.calculateLength(LANDMARK.RIGHT_ELBOW, LANDMARK.RIGHT_WRIST)
+        };
+    }
 
     calculateLength(point1, point2) {
         const startPoint = this.reader.getLandmark(point1);
