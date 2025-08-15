@@ -201,3 +201,13 @@ button:disabled {
     border-color: #f44336;
     color: #c62828;
 }
+
+#rep-count {
+  margin: 20px;
+  padding: 15px;
+  border-radius: 2px;
+  background-color: #f8f9fa;
+  border: 1px solid #dee2e6;
+  min-width: 100px;
+  text-align: center;
+}
