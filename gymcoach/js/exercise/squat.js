@@ -104,9 +104,36 @@ export class Squat extends Exercise {
             return;
         }
 
-        // what else do we want to validate?
-        // is the person going too fast?
-        // what should happen if the exercise status is unknown? does that mean that the person has incorrect form?
+        const leftKnee = this.reader.getLandmark(LANDMARK.LEFT_KNEE);
+        const leftAnkle = this.reader.getLandmark(LANDMARK.LEFT_ANKLE);
+        const rightKnee = this.reader.getLandmark(LANDMARK.RIGHT_KNEE);
+        const rightAnkle = this.reader.getLandmark(LANDMARK.RIGHT_ANKLE);
+
+        const minConfidence = 0.6;
+        if ((leftKnee.visibility < minConfidence || leftAnkle.visibility < minConfidence) && (rightKnee.visibility < minConfidence || rightAnkle.visibility < minConfidence)) {
+            return;
+        }
+
+        const issues = [];
+        const forwardThreshold = 0.07;
+        
+        const leftKneeForward = Math.abs(leftKnee.x - leftAnkle.x);
+        const rightKneeForward = Math.abs(rightKnee.x - rightAnkle.x);
+        
+        if (leftKneeForward > forwardThreshold) {
+            issues.push("Left knee too far forward");
+        }
+        
+        if (rightKneeForward > forwardThreshold) {
+            issues.push("Right knee too far forward");
+        }
+
+        if (issues.length > 0) {
+            const updatedStatus = issues.length === 1 ? issues[0] : "Knees too far forward";
+            
+            this.exerciseStatus.textContent = updatedStatus;
+            this.exerciseStatus.className = "status exercise-status warning";
+        }
     }
 
     determineAngleState(angle, validAngles) {

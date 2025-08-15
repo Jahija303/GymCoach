@@ -220,3 +220,11 @@ next:
 - Complete the front squat validation based on visible keypoints/angles. Mostly focus on knee positioning.
 - Update the UI: Display current squat state (standing, halfSquat...), next squat state, tips on what to do to get to next squat state (bend knees more), rep counter (only counts rep if all states reached), rep speed (are they going too fast)
 - Finnaly research ML models and how can they help us validate the exercise even further.
+
+## 15.08.2025
+
+task: 231-basic-exercise-form-calculation
+
+progress:
+- Completed squat validations from the front (focus on knee position and hips depth) and the side (knee depth in comparison to ankles) and also added some UI tips
+
