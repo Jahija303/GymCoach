@@ -50,6 +50,8 @@ export class Squat extends Exercise {
     constructor() {
         super();
         this.currentSquatState = null;
+        this.squatPhases = [];
+        this.repCounter = 0;
     }
 
     validate(results) {
@@ -150,12 +152,31 @@ export class Squat extends Exercise {
         const hipState = this.determineAngleState(hipAngle, VALID_HIP_ANGLES_SIDE);
 
         const newSquatState = legState === hipState ? legState : 'transition';
-
         this.currentSquatState = newSquatState;
-        
         if (typeof this.exerciseStatus !== 'undefined') {
             this.exerciseStatus.className = `status exercise-status ${this.currentSquatState}`;
             this.exerciseStatus.textContent = this.currentSquatState;
+        }
+
+        if (this.currentSquatState == "standing" || this.currentSquatState == "bottomPosition") {
+            // console.log("standing or bottomPosition");
+            if (this.squatPhases.length > 1) {
+                // console.log("squat phases length > 1")
+                if(this.squatPhases[0] === "standing" && this.squatPhases[1] === "bottomPosition" && this.currentSquatState == this.squatPhases[0]) {
+                    // console.log("Rep completed");
+                    this.repCounter+=1;
+                    this.repCounterElement.textContent = this.repCounter;
+                }
+            }
+            if (this.squatPhases[this.squatPhases.length - 1] !== this.currentSquatState) {
+                this.squatPhases.push(this.currentSquatState);
+            }
+
+            // console.log("squat phases" + this.squatPhases);
+            if (this.squatPhases.length > 2) {
+                this.squatPhases.shift(); // Keep only the last 2 states
+                // console.log("Keep only last two " + this.squatPhases);
+            }
         }
     }
 
