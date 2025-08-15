@@ -6,64 +6,63 @@ export class Exercise {
         this.reader = new LandmarkReader();
         this.poseData = document.getElementById('pose-data');
         this.bodyDimensions = null;
-        this.shoulderDistanceRef = null;
-        this.hipDistanceRef = null;
         this.bodyScaleRef = null;
+        this.DEFAULT_BODY_SCALE = 1.0;
     }
 
-    calibrateBodyDimensions() {
-        // check if all keypoints are visible
-        // check if every keypoint has visibility > 0.9
-        // if these conditions are met, store the body dimensions
-        // otherwise write a message which keypoints are missing
-        this.exerciseStatus.textContent = "Calibrating...";
-        this.exerciseStatus.className = "status exercise-status calibrating";
+    // calibrateBodyDimensions() {
+    //     // check if all keypoints are visible
+    //     // check if every keypoint has visibility > 0.9
+    //     // if these conditions are met, store the body dimensions
+    //     // otherwise write a message which keypoints are missing
+    //     this.exerciseStatus.textContent = "Calibrating...";
+    //     this.exerciseStatus.className = "status exercise-status calibrating";
 
-        const missingKeypoints = [];
-        const coreBodyLandmarks = [
-            LANDMARK.LEFT_SHOULDER,
-            LANDMARK.RIGHT_SHOULDER,
-            LANDMARK.LEFT_ELBOW,
-            LANDMARK.RIGHT_ELBOW,
-            LANDMARK.LEFT_WRIST,
-            LANDMARK.RIGHT_WRIST,
-            LANDMARK.LEFT_HIP,
-            LANDMARK.RIGHT_HIP,
-            LANDMARK.LEFT_KNEE,
-            LANDMARK.RIGHT_KNEE,
-            LANDMARK.LEFT_ANKLE,
-            LANDMARK.RIGHT_ANKLE
-        ];
-        
-        for (const landmark of coreBodyLandmarks) {
-            const point = this.reader.getLandmark(landmark);
-            if (!point || point.visibility < 0.85) {
-                missingKeypoints.push(landmark);
-            }
-        }
+    //     const missingKeypoints = [];
+    //     const coreBodyLandmarks = [
+    //         LANDMARK.LEFT_SHOULDER,
+    //         LANDMARK.RIGHT_SHOULDER,
+    //         LANDMARK.LEFT_ELBOW,
+    //         LANDMARK.RIGHT_ELBOW,
+    //         LANDMARK.LEFT_WRIST,
+    //         LANDMARK.RIGHT_WRIST,
+    //         LANDMARK.LEFT_HIP,
+    //         LANDMARK.RIGHT_HIP,
+    //         LANDMARK.LEFT_KNEE,
+    //         LANDMARK.RIGHT_KNEE,
+    //         LANDMARK.LEFT_ANKLE,
+    //         LANDMARK.RIGHT_ANKLE
+    //     ];
 
-        if (missingKeypoints.length > 0) {
-            const missingKeypointNames = missingKeypoints.map(id => 
-                Object.keys(LANDMARK).find(key => LANDMARK[key] === id) || `Unknown(${id})`
-            );
-            console.log("Missing keypoints:", missingKeypointNames);
-            return;
-        }
+    //     for (const landmark of coreBodyLandmarks) {
+    //         const point = this.reader.getLandmark(landmark);
+    //         if (!point || point.visibility < 0.85) {
+    //             missingKeypoints.push(landmark);
+    //         }
+    //     }
 
-        this.calculateBodyScaleRefs();
-        this.bodyDimensions = {
-            leftLegLength: this.calculateLength(LANDMARK.LEFT_KNEE, LANDMARK.LEFT_ANKLE),
-            rightLegLength: this.calculateLength(LANDMARK.RIGHT_KNEE, LANDMARK.RIGHT_ANKLE),
-            leftThighLength: this.calculateLength(LANDMARK.LEFT_HIP, LANDMARK.LEFT_KNEE),
-            rightThighLength: this.calculateLength(LANDMARK.RIGHT_HIP, LANDMARK.RIGHT_KNEE),
-            leftTorso: this.calculateLength(LANDMARK.LEFT_SHOULDER, LANDMARK.LEFT_HIP),
-            rightTorso: this.calculateLength(LANDMARK.RIGHT_SHOULDER, LANDMARK.RIGHT_HIP),
-            leftArm: this.calculateLength(LANDMARK.LEFT_SHOULDER, LANDMARK.LEFT_ELBOW),
-            rightArm: this.calculateLength(LANDMARK.RIGHT_SHOULDER, LANDMARK.RIGHT_ELBOW),
-            leftForearm: this.calculateLength(LANDMARK.LEFT_ELBOW, LANDMARK.LEFT_WRIST),
-            rightForearm: this.calculateLength(LANDMARK.RIGHT_ELBOW, LANDMARK.RIGHT_WRIST)
-        };
-    }
+    //     if (missingKeypoints.length > 0) {
+    //         const missingKeypointNames = missingKeypoints.map(id => 
+    //             Object.keys(LANDMARK).find(key => LANDMARK[key] === id) || `Unknown(${id})`
+    //         );
+    //         console.log("Missing keypoints:", missingKeypointNames);
+    //         return;
+    //     }
+
+    //     this.bodyScaleRef = this.calculateBodyScale();
+    //     this.bodyDimensions = {
+    //         leftLegLength: this.calculateLength(LANDMARK.LEFT_KNEE, LANDMARK.LEFT_ANKLE),
+    //         rightLegLength: this.calculateLength(LANDMARK.RIGHT_KNEE, LANDMARK.RIGHT_ANKLE),
+    //         leftThighLength: this.calculateLength(LANDMARK.LEFT_HIP, LANDMARK.LEFT_KNEE),
+    //         rightThighLength: this.calculateLength(LANDMARK.RIGHT_HIP, LANDMARK.RIGHT_KNEE),
+    //         leftTorso: this.calculateLength(LANDMARK.LEFT_SHOULDER, LANDMARK.LEFT_HIP),
+    //         rightTorso: this.calculateLength(LANDMARK.RIGHT_SHOULDER, LANDMARK.RIGHT_HIP),
+    //         leftArm: this.calculateLength(LANDMARK.LEFT_SHOULDER, LANDMARK.LEFT_ELBOW),
+    //         rightArm: this.calculateLength(LANDMARK.RIGHT_SHOULDER, LANDMARK.RIGHT_ELBOW),
+    //         leftForearm: this.calculateLength(LANDMARK.LEFT_ELBOW, LANDMARK.LEFT_WRIST),
+    //         rightForearm: this.calculateLength(LANDMARK.RIGHT_ELBOW, LANDMARK.RIGHT_WRIST)
+    //     };
+    // }
 
     calculateLength(point1, point2) {
         const startPoint = this.reader.getLandmark(point1);
@@ -78,148 +77,92 @@ export class Exercise {
         return Math.sqrt(dx * dx + dy * dy);
     }
 
-    calculateBodyScaleRefs() {
+    normalizeKeypointsZ(landmarks) {
+        const scaleZ = this.calculateBodyScale(landmarks);
+        const normalizedKeypoints = [...landmarks];
+
+        const referenceZ = landmarks[0].z;
+
+        normalizedKeypoints.forEach(point => {
+            if (point.z !== undefined) {
+                point.z = (point.z - referenceZ) * scaleZ;
+            }
+        });
+        
+        return normalizedKeypoints;
+    }
+
+    calculateBodyScale() {
         const leftShoulder = this.reader.getLandmark(LANDMARK.LEFT_SHOULDER);
         const rightShoulder = this.reader.getLandmark(LANDMARK.RIGHT_SHOULDER);
         const leftHip = this.reader.getLandmark(LANDMARK.LEFT_HIP);
         const rightHip = this.reader.getLandmark(LANDMARK.RIGHT_HIP);
-        
-        this.shoulderDistanceRef = Math.sqrt(
-            (rightShoulder.x - leftShoulder.x) ** 2 + 
-            (rightShoulder.y - leftShoulder.y) ** 2
-        );
-        this.hipDistanceRef = Math.sqrt(
-            (rightHip.x - leftHip.x) ** 2 + 
-            (rightHip.y - leftHip.y) ** 2
-        );
 
-        const shoulderMidpointX = (leftShoulder.x + rightShoulder.x) / 2;
-        const shoulderMidpointY = (leftShoulder.y + rightShoulder.y) / 2;
-        const hipMidpointX = (leftHip.x + rightHip.x) / 2;
-        const hipMidpointY = (leftHip.y + rightHip.y) / 2;
-        
-        this.bodyScaleRef = Math.sqrt(
-            (shoulderMidpointX - hipMidpointX) ** 2 + 
-            (shoulderMidpointY - hipMidpointY) ** 2
-        );
+        let bodyScale = this.DEFAULT_BODY_SCALE;
+
+        if (leftShoulder && leftHip) {
+            bodyScale = Math.abs(leftShoulder.y - leftHip.y);
+        } else if (rightShoulder && rightHip) {
+            bodyScale = Math.abs(rightShoulder.y - rightHip.y);
+        }
+
+        return Math.max(bodyScale, 0.1);
     }
 
     calculate3DBodyRotation() {
-        if (!this.shoulderDistanceRef || !this.hipDistanceRef || !this.bodyScaleRef) {
-                return 0; // No reference data available
-            }
+        const leftShoulder = this.reader.getLandmark(LANDMARK.LEFT_SHOULDER);
+        const rightShoulder = this.reader.getLandmark(LANDMARK.RIGHT_SHOULDER);
 
-            const leftShoulder = this.reader.getLandmark(LANDMARK.LEFT_SHOULDER);
-            const rightShoulder = this.reader.getLandmark(LANDMARK.RIGHT_SHOULDER);
-            const leftHip = this.reader.getLandmark(LANDMARK.LEFT_HIP);
-            const rightHip = this.reader.getLandmark(LANDMARK.RIGHT_HIP);
-                
-            if (!leftShoulder || !rightShoulder || !leftHip || !rightHip) {
-                return 0;
-            }
+        if (!leftShoulder || !rightShoulder) {
+            return null;
+        }
 
-            const currentShoulderDistance = Math.sqrt(
-                (rightShoulder.x - leftShoulder.x) ** 2 + 
-                (rightShoulder.y - leftShoulder.y) ** 2
-            );
-            const currentHipDistance = Math.sqrt(
-                (rightHip.x - leftHip.x) ** 2 + 
-                (rightHip.y - leftHip.y) ** 2
-            );
+        const shoulderVector = {
+            x: rightShoulder.x - leftShoulder.x,
+            y: rightShoulder.y - leftShoulder.y,
+            z: rightShoulder.z - leftShoulder.z
+        };
 
-            const shoulderMidX = (leftShoulder.x + rightShoulder.x) / 2;
-            const shoulderMidY = (leftShoulder.y + rightShoulder.y) / 2;
-            const hipMidX = (leftHip.x + rightHip.x) / 2;
-            const hipMidY = (leftHip.y + rightHip.y) / 2;
-            
-            const currentBodyScale = Math.sqrt(
-                (shoulderMidX - hipMidX) ** 2 + 
-                (shoulderMidY - hipMidY) ** 2
-            );
+        const rotation = Math.atan2(shoulderVector.z, shoulderVector.x) * (180 / Math.PI);
+        const tilt = Math.atan2(shoulderVector.y, shoulderVector.x) * (180 / Math.PI);
 
-            const scaleRatio = currentBodyScale / this.bodyScaleRef;
-            const expectedShoulderDistance = this.shoulderDistanceRef * scaleRatio;
-            const expectedHipDistance = this.hipDistanceRef * scaleRatio;
-
-            const shoulderCompressionRatio = currentShoulderDistance / expectedShoulderDistance;
-            const hipCompressionRatio = currentHipDistance / expectedHipDistance;
-            const avgCompressionRatio = (shoulderCompressionRatio * 0.6 + hipCompressionRatio * 0.4);
-            const clampedRatio = Math.max(0.05, Math.min(1.0, avgCompressionRatio));
-
-            const rotationRadians = Math.acos(clampedRatio);
-            let rotationDegrees = rotationRadians * (180 / Math.PI);
-
-            // Determine rotation direction
-            // If body is rotated, the cross product will deviate from the reference
-            let rotationSign = 1;
-
-            // Only apply rotation if there's significant compression (avoid noise when facing camera)
-            if (avgCompressionRatio < 0.95) {  // Only when there's actual rotation
-                // Additional method: Check relative positions
-                // When turning right: left landmarks move toward center more than right landmarks
-                // When turning left: right landmarks move toward center more than left landmarks
-                
-                const leftShoulderRelX = leftShoulder.x - shoulderMidX;
-                const rightShoulderRelX = rightShoulder.x - shoulderMidX;
-                const leftHipRelX = leftHip.x - hipMidX;
-                const rightHipRelX = rightHip.x - hipMidX;
-                
-                // Calculate how much each side has moved toward the center
-                const leftSideCompression = Math.abs(leftShoulderRelX) + Math.abs(leftHipRelX);
-                const rightSideCompression = Math.abs(rightShoulderRelX) + Math.abs(rightHipRelX);
-                
-                // If left side is more compressed, person is turning right (left side goes toward back)
-                // If right side is more compressed, person is turning left (right side goes toward back)
-                const compressionDiff = leftSideCompression - rightSideCompression;
-                
-                if (Math.abs(compressionDiff) > 0.01) {  // Threshold to avoid noise
-                    rotationSign = compressionDiff < 0 ? 1 : -1;  // Left compressed = right turn (+)
-                }
-            } else {
-                // If facing camera (little compression), return near zero
-                rotationDegrees *= avgCompressionRatio;  // Scale down the angle
-            }
-            
-            const finalRotation = rotationDegrees * rotationSign;
-            
-            return Math.round(finalRotation * 100) / 100;
+        return { rotation: rotation, tilt: tilt };
     }
 
-
-    calculateAngle3D(point1, vertex, point2, limb1Length, limb2Length, bodyRotation) {
+    calculateAngle2D(point1, vertex, point2, previousAngle = null) {
         if (!point1 || !vertex || !point2) {
             return null;
         }
 
-        const avgConfidence = (point1.visibility + vertex.visibility + point2.visibility) / 3;
-        if (avgConfidence < 0.5) {
+        const vector1 = {
+            x: point1.x - vertex.x,
+            y: point1.y - vertex.y
+        };
+
+        const vector2 = {
+            x: point2.x - vertex.x,
+            y: point2.y - vertex.y
+        };
+
+        const dotProduct = vector1.x * vector2.x + vector1.y * vector2.y;
+        const magnitude1 = Math.sqrt(vector1.x ** 2 + vector1.y ** 2);
+        const magnitude2 = Math.sqrt(vector2.x ** 2 + vector2.y ** 2);
+
+        if (magnitude1 === 0 || magnitude2 === 0) {
             return null;
         }
 
-        // Calculate 2D distance between point1 and point2
-        const distance_2d = Math.sqrt(
-            (point1.x - point2.x) ** 2 + (point1.y - point2.y) ** 2
-        );
-
-        // Estimate the actual 3D distance between point1 and point2
-        // This requires considering how the body rotation affects the apparent distance
-        const rotationFactor = Math.abs(Math.cos(bodyRotation));
-        const estimatedDistance3D = distance_2d / Math.max(0.1, rotationFactor);
-
-        // Use law of cosines: c² = a² + b² - 2ab*cos(C)
-        // Rearranged: cos(C) = (a² + b² - c²) / (2ab)
-        const cosAngle = (limb1Length ** 2 + limb2Length ** 2 - estimatedDistance3D ** 2) / 
-                        (2 * limb1Length * limb2Length);
-
-        if (cosAngle < -1 || cosAngle > 1) {
-            return null; // Invalid triangle
-        }
-
-        const angleRadians = Math.acos(cosAngle);
+        const cosAngle = dotProduct / (magnitude1 * magnitude2);
+        const angleRadians = Math.acos(Math.max(-1, Math.min(1, cosAngle)));
         let angleDegrees = angleRadians * (180 / Math.PI);
 
         if (angleDegrees < 10 || angleDegrees > 180) {
-            return null; // Anatomically impossible angle
+            return null;
+        }
+
+        if (previousAngle !== null && Math.abs(angleDegrees - previousAngle) < 45) {
+            const smoothingFactor = 0.7;
+            angleDegrees = previousAngle * smoothingFactor + angleDegrees * (1 - smoothingFactor);
         }
 
         return Math.round(angleDegrees * 100) / 100;
