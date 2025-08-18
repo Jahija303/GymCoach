@@ -17,27 +17,16 @@
       <button id="startBtn">Start Camera</button>
       <button id="stopBtn" disabled>Stop Camera</button>
     </div>
-    <div>
-      <select id="exerciseSelect">
-        <option value="">Select exercise</option>
-        <option value="plank">Plank</option>
-        <option value="pushup">Push Up</option>
-        <option value="squat">Squat</option>
-      </select>
-    </div>
-    <div id="exercise-status" class="exercise-status status">
-        Not detected
-    </div>
-    <div id="rep-count">Reps: <span>0</span></div>
   </div>
   <div id="video-container">
     <div class="video-section">
-      <video id="localVideo" autoplay muted playsinline></video>
-      <canvas id="poseCanvas"></canvas>
+      <video id="localVideoFront" autoplay muted playsinline></video>
+      <canvas id="poseCanvasFront"></canvas>
     </div>
-  </div>
-  <div id="pose-info">
-    <div id="pose-data"></div>
+    <div class="video-section">
+      <video id="localVideoSide" autoplay muted playsinline></video>
+      <canvas id="poseCanvasSide"></canvas>
+    </div>
   </div>
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.8.1/socket.io.js"></script>

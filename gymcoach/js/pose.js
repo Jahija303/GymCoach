@@ -1,14 +1,21 @@
 import { FilesetResolver, PoseLandmarker } from '@mediapipe/tasks-vision';
 
-export const CANVAS_WIDTH = 1280;
-export const CANVAS_HEIGHT = 720;
+export const CANVAS_WIDTH = 768;
+export const CANVAS_HEIGHT = 432;
 
-const poseCanvas = document.getElementById('poseCanvas');
-const poseCtx = poseCanvas.getContext('2d');
-const poseData = document.getElementById('pose-data');
+const poseCanvasFront = document.getElementById('poseCanvasFront');
+const poseCtxFront = poseCanvasFront.getContext('2d');
 
-poseCanvas.width = CANVAS_WIDTH;
-poseCanvas.height = CANVAS_HEIGHT;
+const poseCanvasSide = document.getElementById('poseCanvasSide');
+const poseCtxSide = poseCanvasSide.getContext('2d');
+
+// const poseData = document.getElementById('pose-data');
+
+poseCanvasFront.width = CANVAS_WIDTH;
+poseCanvasFront.height = CANVAS_HEIGHT;
+
+poseCanvasSide.width = CANVAS_WIDTH;
+poseCanvasSide.height = CANVAS_HEIGHT;
 
 export async function initializePoseDetection() {
     const vision = await FilesetResolver.forVisionTasks(

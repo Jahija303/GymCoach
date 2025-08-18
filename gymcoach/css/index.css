@@ -1,3 +1,8 @@
+:root {
+  --video-width: 768px;
+  --video-height: 432px;
+}
+
 body {
   font-family: Arial, sans-serif;
   display: flex;
@@ -15,7 +20,6 @@ h1 {
 }
 
 .header {
-  width: 1280px;
   display: flex;
   flex-direction: row;
   justify-content: space-between;
@@ -23,13 +27,15 @@ h1 {
 
 #video-container {
   overflow: hidden;
-  background-color: #000;
+  border: 1px solid black;
   display: flex;
+  justify-content: space-between;
 }
 
 .video-section {
   text-align: center;
   position: relative;
+  background-color: black;
 }
 
 .video-section h3 {
@@ -38,21 +44,42 @@ h1 {
   font-size: 1.2em;
 }
 
-#localVideo {
-  width: 1280px;
-  height: 720px;
+#localVideoFront {
+  width: var(--video-width);
+  height: var(--video-height);
   display: block;
   border: 1px solid #555;
   border-radius: 5px;
 }
 
-#poseCanvas {
+#localVideoSide {
+  width: var(--video-width);
+  height: var(--video-height);
+  display: block;
+  border: 1px solid #555;
+  border-radius: 5px;
+}
+
+#poseCanvasFront {
   position: absolute;
   top: 0;
   left: 0;
   pointer-events: none;
   border: 1px solid #555;
   border-radius: 5px;
+  width: var(--video-width);
+  height: var(--video-height);
+}
+
+#poseCanvasSide {
+  position: absolute;
+  top: 0;
+  left: 0;
+  pointer-events: none;
+  border: 1px solid #555;
+  border-radius: 5px;
+  width: var(--video-width);
+  height: var(--video-height);
 }
 
 #controls {
