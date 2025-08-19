@@ -12,20 +12,28 @@
   </script>
 </head>
 <body>
-  <div class="header">
-    <div id="controls">
-      <button id="startBtn">Start Camera</button>
-      <button id="stopBtn" disabled>Stop Camera</button>
-    </div>
-  </div>
   <div id="video-container">
-    <div class="video-section">
-      <video id="localVideoFront" autoplay muted playsinline></video>
-      <canvas id="poseCanvasFront"></canvas>
+    <div class="video-wrapper">
+      <select id="cameraSelect1">
+        <option value="">Select Camera</option>
+      </select>
+      <div class="video-section">
+        <video id="localVideoFront" autoplay muted playsinline></video>
+        <canvas id="poseCanvasFront"></canvas>
+      </div>
     </div>
-    <div class="video-section">
-      <video id="localVideoSide" autoplay muted playsinline></video>
-      <canvas id="poseCanvasSide"></canvas>
+    <div class="video-wrapper">
+      <select id="cameraSelect2">
+        <option value="">Select Camera</option>
+      </select>
+      <div class="video-section">
+        <video id="localVideoSide" autoplay muted playsinline></video>
+        <canvas id="poseCanvasSide"></canvas>
+      </div>
+    </div>
+    <div class="video-wrapper">
+      <div class="video-section">
+      </div>
     </div>
   </div>
 
