@@ -44,6 +44,7 @@ h1 {
   height: var(--video-height);
   display: block;
   border: 1px solid #555;
+  object-fit: contain; /* This prevents cropping and maintains aspect ratio */
 }
 
 #localVideoSide {
@@ -51,6 +52,7 @@ h1 {
   height: var(--video-height);
   display: block;
   border: 1px solid #555;
+  object-fit: contain; /* This prevents cropping and maintains aspect ratio */
 }
 
 #poseCanvasFront {
