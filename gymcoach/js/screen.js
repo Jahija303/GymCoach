@@ -80,8 +80,8 @@ function captureCamera(video, selectedCamera) {
     audio: false,
     video: {
       deviceId: { exact: selectedCamera },
-      width: { ideal: 768 }, 
-      height: { ideal: 432 }, 
+      width: { min: 640, ideal: 1280, max: 1920 }, 
+      height: { min: 480, ideal: 720, max: 1080 }, 
       frameRate: { ideal: FPS }
     }
   };
