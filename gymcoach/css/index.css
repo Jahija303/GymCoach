@@ -35,6 +35,10 @@ h1 {
   height: var(--video-height);
 }
 
+.video-section.three {
+  background-color: #ccc;
+}
+
 #localVideoFront {
   width: var(--video-width);
   height: var(--video-height);
