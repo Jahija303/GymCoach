@@ -3,7 +3,8 @@ import { initializePoseDetection, CANVAS_HEIGHT, CANVAS_WIDTH, drawPoseLandmarks
 let stream = null;
 let intervalIDs = {};
 const FPS = 30;
-let poseLandmarker = null;
+let poseLandmarkerFront = null;
+let poseLandmarkerSide = null;
 let devices;
 var camSelect1 = document.getElementById("cameraSelect1");
 var camSelect2 = document.getElementById("cameraSelect2");
@@ -126,7 +127,7 @@ function updateTableData(tableId, results) {
   const tableBody = document.getElementById(tableId);
   const rows = tableBody.rows;
 
-  if (results && results.landmarks && results.landmarks[0].length > 0) {
+  if (results && results.landmarks && results.landmarks.length > 0) {
     const landmarks = results.landmarks[0];
     for (let i = 0; i < landmarks.length && i < 33; i++) {
       const landmark = landmarks[i];
@@ -162,12 +163,20 @@ function updateTableData(tableId, results) {
 function startPoseCapture(video) {
     console.log(`Starting pose capture for video: ${video.id}`);
     return setInterval(async () => {
-        if (video.srcObject && video.videoWidth > 0 && poseLandmarker) {
+        if (video.srcObject && video.videoWidth > 0 && (poseLandmarkerFront || poseLandmarkerSide)) {
             try {
                 const startTimeMs = performance.now();
-                const results = poseLandmarker.detectForVideo(video, startTimeMs);
+                const frontOrSide = video.id === 'localVideoFront' ? 'front' : 'side';
+                let results = null;
+                switch (frontOrSide) {
+                    case 'front':
+                        results = await poseLandmarkerFront.detectForVideo(video, startTimeMs);
+                        break;
+                    case 'side':
+                        results = await poseLandmarkerSide.detectForVideo(video, startTimeMs);
+                        break;
+                }
 
-                let frontOrSide = video.id === 'localVideoFront' ? 'front' : 'side';
                 drawPoseLandmarks(results, frontOrSide);
 
                 const tableId = video.id === 'localVideoFront' ? 'frontTableBody' : 'sideTableBody';
@@ -190,10 +199,17 @@ camSelect2.addEventListener('change', function() {
 document.addEventListener('DOMContentLoaded', function() {
   initializeTables();
   listDevices();
-  initializePoseDetection().then((landmarker) => {
-        poseLandmarker = landmarker;
-        console.log('BlazePose initialized');
+    initializePoseDetection().then((landmarker) => {
+        poseLandmarkerFront = landmarker;
+        console.log('BlazePose 1 initialized');
     }).catch((error) => {
-        console.error('Error initializing BlazePose:', error);
+        console.error('Error initializing BlazePose 1:', error);
+    });
+
+    initializePoseDetection().then((landmarker) => {
+        poseLandmarkerSide = landmarker;
+        console.log('BlazePose 2 initialized');
+    }).catch((error) => {
+        console.error('Error initializing BlazePose 2:', error);
     });
 });
