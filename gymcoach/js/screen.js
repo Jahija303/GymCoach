@@ -1,4 +1,4 @@
-import { initializePoseDetection, CANVAS_HEIGHT, CANVAS_WIDTH } from './pose.js';
+import { initializePoseDetection, CANVAS_HEIGHT, CANVAS_WIDTH, drawPoseLandmarks } from './pose.js';
 
 let stream = null;
 let intervalIDs = {};
@@ -91,6 +91,9 @@ function startPoseCapture(video) {
             try {
                 const startTimeMs = performance.now();
                 const results = poseLandmarker.detectForVideo(video, startTimeMs);
+
+                let frontOrSide = video.id === 'localVideoFront' ? 'front' : 'side';
+                drawPoseLandmarks(results, frontOrSide)
             } catch (error) {
                 console.error('Error during MediaPipe pose detection:', error);
             }
