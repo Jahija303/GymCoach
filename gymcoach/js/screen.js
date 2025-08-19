@@ -1,147 +1,117 @@
-import { drawPoseLandmarks, initializePoseDetection, CANVAS_HEIGHT, CANVAS_WIDTH } from './pose.js';
-
-import { Squat } from './exercise/squat.js';
-
-const localVideoFront = document.getElementById('localVideoFront');
-const localVideoSide = document.getElementById('localVideoSide');
-const startBtn = document.getElementById('startBtn');
-const stopBtn = document.getElementById('stopBtn');
-const exerciseSelect = document.getElementById('exerciseSelect');
-const poseData = document.getElementById('pose-data');
+import { initializePoseDetection, CANVAS_HEIGHT, CANVAS_WIDTH } from './pose.js';
 
 let stream = null;
+let intervalIDs = {};
 const FPS = 30;
-let intervalId = null;
-let webcamRunning = false;
 let poseLandmarker = null;
-let currentExercise = '';
+let devices;
+var camSelect1 = document.getElementById("cameraSelect1");
+var camSelect2 = document.getElementById("cameraSelect2");
+const localVideoFront = document.getElementById('localVideoFront');
+const localVideoSide = document.getElementById('localVideoSide');
 
-// export function startFrameCapture() {
-//     let frameCount = 0;
-
-//     let intervalId = setInterval(async () => {
-//         if (stream && localVideo.videoWidth > 0 && poseLandmarker && webcamRunning) {
-//             try {
-//                 const startTimeMs = performance.now();
-//                 const results = poseLandmarker.detectForVideo(localVideo, startTimeMs);
-
-//                 drawPoseLandmarks(results);
-
-//                 if (frameCount % 9 === 0 && currentExercise) {
-//                     currentExercise.validate(results);
-//                 }
-
-//                 frameCount++;
-//             } catch (error) {
-//                 console.error('Error during MediaPipe pose detection:', error);
-//             }
-//         }
-//     }, 1000 / FPS);
-
-//     return intervalId;
+// function stopCapture() {    
+//     if (intervalId) {
+//         clearInterval(intervalId);
+//         intervalId = null;
+//     }
 // }
 
-async function startCamera() {
+async function askForPermissions() {
     try {
-        const devices = await navigator.mediaDevices.enumerateDevices();
-        const videoDevices = devices.filter(device => device.kind === 'videoinput');
-        
-        console.log('Available cameras:', videoDevices);
-        
-        if (videoDevices.length < 2) {
-            console.warn('Only one camera detected. Using single camera mode.');
-            const singleStream = await navigator.mediaDevices.getUserMedia({
-                video: true, 
-                audio: false
-            });
-            localVideoFront.srcObject = singleStream;
-            return;
-        }
-    
-        const frontStream = await navigator.mediaDevices.getUserMedia({
-            video: { deviceId: { exact: videoDevices[0].deviceId }, width: { ideal: 768 }, height: { ideal: 432 }, frameRate: { ideal: FPS } },
-            audio: false
-        });
-        
-        const sideStream = await navigator.mediaDevices.getUserMedia({
-            video: { deviceId: { exact: videoDevices[1].deviceId }, width: { ideal: 768 }, height: { ideal: 432 }, frameRate: { ideal: FPS } },
-            audio: false
-        });
-    
-        localVideoFront.srcObject = frontStream;
-        localVideoSide.srcObject = sideStream;
-
-        startBtn.disabled = true;
-        stopBtn.disabled = false;
+        var constraints = {video: true, audio: false};
+        stream = await navigator.mediaDevices.getUserMedia(constraints);  
     } catch (error) {
-        console.error('Camera error:', error);
+        console.log(error);
+    }
+
+    if (stream){
+        stream.getTracks().forEach(track => track.stop());
     }
 }
 
-function stopCamera() {
-    webcamRunning = false;
-    
-    // Stop front camera stream
-    if (localVideoFront.srcObject) {
-        localVideoFront.srcObject.getTracks().forEach(track => track.stop());
-        localVideoFront.srcObject = null;
+async function getCameraDevices() {
+  await askForPermissions();
+  var allDevices = await navigator.mediaDevices.enumerateDevices();
+  var cameraDevices = [];
+  for (var i = 0; i < allDevices.length; i++) {
+    var device = allDevices[i];
+    if (device.kind == 'videoinput') {
+      cameraDevices.push(device);
     }
-    
-    // Stop side camera stream
-    if (localVideoSide.srcObject) {
-        localVideoSide.srcObject.getTracks().forEach(track => track.stop());
-        localVideoSide.srcObject = null;
-    }
-    
-    if (intervalId) {
-        clearInterval(intervalId);
-        intervalId = null;
-    }
-
-    // Clear pose canvases
-    const poseCanvasFront = document.getElementById('poseCanvasFront');
-    const poseCanvasSide = document.getElementById('poseCanvasSide');
-    
-    if (poseCanvasFront) {
-        poseCanvasFront.getContext('2d').clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
-    }
-    
-    if (poseCanvasSide) {
-        poseCanvasSide.getContext('2d').clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
-    }
-    
-    if (poseData) {
-        poseData.textContent = '';
-    }
-    
-    startBtn.disabled = false;
-    stopBtn.disabled = true;
+  }
+  return cameraDevices;
 }
 
-startBtn.addEventListener('click', startCamera);
-stopBtn.addEventListener('click', stopCamera);
+async function listDevices(){
+  devices = await getCameraDevices();
 
-// Exercise selection event listener
-// exerciseSelect.addEventListener('change', (event) => {
-//     switch (event.target.value) {
-//         case 'squat':
-//             console.log('Squat selected');
-//             currentExercise = new Squat();
-//             break;
-//         case 'pushup':
-//             console.log('Pushup selected');
-//             break;
-//         case 'plank':
-//             console.log('Plank selected');
-//             break;
-//     }
-// });
+  for (let index = 0; index < devices.length; index++) {
+    const device = devices[index];
+    camSelect1.appendChild(new Option(device.label ?? "Camera "+index, device.deviceId));
+    camSelect2.appendChild(new Option(device.label ?? "Camera "+index, device.deviceId));
+  }
+  
+  camSelect1.selectedIndex = 0;
+  camSelect2.selectedIndex = 0;
+}
 
-// document.addEventListener('DOMContentLoaded', () => {
-//     initializePoseDetection().then((landmarker) => {
-//         poseLandmarker = landmarker;
-//         console.log('BlazePose initialized');
-//     }).catch((error) => {
-//         console.error('Error initializing BlazePose:', error);
-//     });
-// });
+function captureCamera(video, selectedCamera) {
+  if (video.srcObject) {
+    video.srcObject.getTracks().forEach(track => track.stop());
+    video.srcObject = null;
+  }
+
+  if (!selectedCamera) {
+    return;
+  }
+  
+  var constraints = {
+    audio: false,
+    video: {
+      deviceId: { exact: selectedCamera },
+      width: { ideal: 768 }, 
+      height: { ideal: 432 }, 
+      frameRate: { ideal: FPS }
+    }
+  };
+
+  navigator.mediaDevices.getUserMedia(constraints).then(function(camera) {
+    video.srcObject = camera;
+    intervalIDs[selectedCamera] = startPoseCapture(video);
+  }).catch(function(error) {
+    alert('Unable to capture your camera. Please check console logs.');
+    console.error(error);
+  });
+}
+
+function startPoseCapture(video) {
+    return setInterval(async () => {
+        if (stream && video.videoWidth > 0 && poseLandmarker) {
+            try {
+                const startTimeMs = performance.now();
+                const results = poseLandmarker.detectForVideo(video, startTimeMs);
+            } catch (error) {
+                console.error('Error during MediaPipe pose detection:', error);
+            }
+        }
+    }, 1000 / FPS);
+}
+
+camSelect1.addEventListener('change', function() {
+  captureCamera(localVideoFront, camSelect1.value);
+});
+
+camSelect2.addEventListener('change', function() {
+  captureCamera(localVideoSide, camSelect2.value);
+});
+
+document.addEventListener('DOMContentLoaded', function() {
+  listDevices();
+  initializePoseDetection().then((landmarker) => {
+        poseLandmarker = landmarker;
+        console.log('BlazePose initialized');
+    }).catch((error) => {
+        console.error('Error initializing BlazePose:', error);
+    });
+});

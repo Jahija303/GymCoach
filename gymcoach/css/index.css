@@ -19,29 +19,20 @@ h1 {
   font-size: 3em;
 }
 
-.header {
-  display: flex;
-  flex-direction: row;
-  justify-content: space-between;
-}
-
 #video-container {
   overflow: hidden;
-  border: 1px solid black;
-  display: flex;
-  justify-content: space-between;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: auto;
+  gap: 20px;
 }
 
 .video-section {
   text-align: center;
   position: relative;
   background-color: black;
-}
-
-.video-section h3 {
-  color: white;
-  margin: 0 0 10px 0;
-  font-size: 1.2em;
+  width: var(--video-width);
+  height: var(--video-height);
 }
 
 #localVideoFront {
@@ -49,7 +40,6 @@ h1 {
   height: var(--video-height);
   display: block;
   border: 1px solid #555;
-  border-radius: 5px;
 }
 
 #localVideoSide {
@@ -57,7 +47,6 @@ h1 {
   height: var(--video-height);
   display: block;
   border: 1px solid #555;
-  border-radius: 5px;
 }
 
 #poseCanvasFront {
@@ -66,7 +55,6 @@ h1 {
   left: 0;
   pointer-events: none;
   border: 1px solid #555;
-  border-radius: 5px;
   width: var(--video-width);
   height: var(--video-height);
 }
@@ -77,164 +65,14 @@ h1 {
   left: 0;
   pointer-events: none;
   border: 1px solid #555;
-  border-radius: 5px;
   width: var(--video-width);
   height: var(--video-height);
 }
 
-#controls {
-  margin: 20px 20px 20px 0;
-  display: flex;
-  gap: 10px;
-}
-
-button {
-  padding: 10px 20px;
-  font-size: 16px;
-  border: none;
-  border-radius: 5px;
-  cursor: pointer;
-  transition: background-color 0.3s;
-}
-
-#startBtn {
-  background-color: #4CAF50;
-  color: white;
-}
-
-#startBtn:hover:not(:disabled) {
-  background-color: #45a049;
-}
-
-#stopBtn {
-  background-color: #f44336;
-  color: white;
-}
-
-#stopBtn:hover:not(:disabled) {
-  background-color: #da190b;
-}
-
-button:disabled {
-  background-color: #cccccc;
-  cursor: not-allowed;
-}
-
-.status {
-  margin: 20px 0 20px 20px;
-  padding: 10px;
-  border-radius: 5px;
-  background-color: #e7f3ff;
-  border: 1px solid #b8daff;
-  color: #004085;
-  min-width: 300px;
-  text-align: center;
-}
-
-#pose-info {
-  margin: 20px;
-  padding: 15px;
-  border-radius: 5px;
-  background-color: #f8f9fa;
-  border: 1px solid #dee2e6;
-  min-width: 500px;
-  text-align: center;
-}
-
-#pose-info h3 {
-  color: #333;
-  margin: 0 0 10px 0;
-}
-
-#pose-status {
-  padding: 5px;
-  font-weight: bold;
-  color: #007bff;
-}
-
-#pose-data {
-  margin-top: 10px;
-  font-family: monospace;
-  font-size: 12px;
-  text-align: left;
-  max-height: 200px;
-  overflow-y: auto;
-  background-color: #f1f3f4;
-  padding: 10px;
-  border-radius: 3px;
-  font-size: 20px;
-}
-#exerciseSelect {
-  margin: 20px 0;
-  padding: 10px;
-  border-radius: 5px;
-  background-color: #f8f9fa;
-  border: 1px solid #dee2e6;
-  min-width: 200px;
-  text-align: left;
-}
-
-.exercise-status {
+.video-wrapper select {
+  width: 250px;
+  padding: 7px;
+  border: 1px solid #ccc;
   background-color: white;
-  border-color: lightgray;
-  color: black;
-  font-size: 18px;
-}
-
-.exercise-status.standing {
-    background-color: #f0f8ff;
-    border-color: #2196f3;
-    color: #1976d2;
-}
-
-.exercise-status.calibrating {
-    background-color: #f3e5f5;
-    border-color: #673ab7;
-    color: #4527a0;
-}
-
-.exercise-status.quarterSquat {
-    background-color: #e8f5e8;
-    border-color: #4caf50;
-    color: #388e3c;
-}
-
-.exercise-status.halfSquat {
-    background-color: #fff8dc;
-    border-color: #ff9800;
-    color: #f57c00;
-}
-
-.exercise-status.deepSquat {
-    background-color: #ffe0e6;
-    border-color: #ff5722;
-    color: #d84315;
-}
-
-.exercise-status.bottomPosition {
-    background-color: #f3e5f5;
-    border-color: #9c27b0;
-    color: #7b1fa2;
-}
-
-.exercise-status.transition {
-    background-color: #f5f5f5;
-    border-color: #9e9e9e;
-    color: #616161;
-}
-
-.exercise-status.unknown {
-    background-color: #ffebee;
-    border-color: #f44336;
-    color: #c62828;
-}
-
-#rep-count {
-  margin: 20px;
-  padding: 15px;
-  border-radius: 2px;
-  background-color: #f8f9fa;
-  border: 1px solid #dee2e6;
-  min-width: 100px;
-  text-align: center;
+  font-size: 16px;
 }
