@@ -13,7 +13,8 @@
 </head>
 <body>
   <div id="video-container">
-    <div class="video-wrapper">
+    <div class="wrapper">
+      <label>Front Camera</label>
       <select id="cameraSelect1">
         <option value="">Select Camera</option>
       </select>
@@ -22,7 +23,8 @@
         <canvas id="poseCanvasFront"></canvas>
       </div>
     </div>
-    <div class="video-wrapper">
+    <div class="wrapper">
+      <label>Side Camera</label>
       <select id="cameraSelect2">
         <option value="">Select Camera</option>
       </select>
@@ -31,8 +33,44 @@
         <canvas id="poseCanvasSide"></canvas>
       </div>
     </div>
-    <div class="video-wrapper">
+    <div class="wrapper">
       <div class="video-section">
+      </div>
+    </div>
+    <div class="wrapper">
+      <div class="data-section">
+        <div class="table-container">
+          <h3>Front Camera</h3>
+          <table id="frontDataTable">
+            <thead>
+              <tr>
+                <th>Keypoint</th>
+                <th>X</th>
+                <th>Y</th>
+                <th>Z</th>
+                <th>V</th>
+              </tr>
+            </thead>
+            <tbody id="frontTableBody">
+            </tbody>
+          </table>
+        </div>
+        <div class="table-container">
+          <h3>Side Camera</h3>
+          <table id="sideDataTable">
+            <thead>
+              <tr>
+                <th>Keypoint</th>
+                <th>X</th>
+                <th>Y</th>
+                <th>Z</th>
+                <th>V</th>
+              </tr>
+            </thead>
+            <tbody id="sideTableBody">
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   </div>
