@@ -13,12 +13,204 @@ var camSelect2 = document.getElementById("cameraSelect2");
 const localVideoFront = document.getElementById('localVideoFront');
 const localVideoSide = document.getElementById('localVideoSide');
 
-// function stopCapture() {    
-//     if (intervalId) {
-//         clearInterval(intervalId);
-//         intervalId = null;
-//     }
-// }
+// Store latest results for alignment
+let latestFrontResults = null;
+let latestSideResults = null;
+
+// ===== POSE ALIGNMENT CODE =====
+// BlazePose landmark indices for key body parts
+const REFERENCE_LANDMARKS = {
+    NOSE: 0,
+    LEFT_SHOULDER: 11,
+    RIGHT_SHOULDER: 12,
+    LEFT_ELBOW: 13,
+    RIGHT_ELBOW: 14,
+    LEFT_HIP: 23,
+    RIGHT_HIP: 24
+};
+
+function extractReferencePoints(landmarks) {
+    const referencePoints = [];
+    
+    for (const [name, index] of Object.entries(REFERENCE_LANDMARKS)) {
+        const landmark = landmarks[index];
+        if (landmark && landmark.visibility > 0.5) {
+            referencePoints.push({
+                index: index,
+                name: name,
+                x: landmark.x,
+                y: landmark.y,
+                z: landmark.z
+            });
+        }
+    }
+    
+    return referencePoints;
+}
+
+function calculateCentroid(points) {
+    if (points.length === 0) return { x: 0, y: 0, z: 0 };
+    
+    const sum = points.reduce((acc, point) => ({
+        x: acc.x + point.x,
+        y: acc.y + point.y,
+        z: acc.z + point.z
+    }), { x: 0, y: 0, z: 0 });
+    
+    return {
+        x: sum.x / points.length,
+        y: sum.y / points.length,
+        z: sum.z / points.length
+    };
+}
+
+function calculateAverageDistance(points, centroid) {
+    if (points.length === 0) return 1;
+    
+    const totalDistance = points.reduce((sum, point) => {
+        const dx = point.x - centroid.x;
+        const dy = point.y - centroid.y;
+        const dz = point.z - centroid.z;
+        return sum + Math.sqrt(dx * dx + dy * dy + dz * dz);
+    }, 0);
+    
+    return totalDistance / points.length;
+}
+
+function transformPoint(point, transform) {
+    const translated = {
+        x: point.x - transform.sourceCenter.x,
+        y: point.y - transform.sourceCenter.y,
+        z: point.z - transform.sourceCenter.z
+    };
+    
+    const scaled = {
+        x: translated.x * transform.scale,
+        y: translated.y * transform.scale,
+        z: translated.z * transform.scale
+    };
+    
+    return {
+        x: scaled.x + transform.targetCenter.x,
+        y: scaled.y + transform.targetCenter.y,
+        z: scaled.z + transform.targetCenter.z
+    };
+}
+
+function calculateAlignment(sourceLandmarks, targetLandmarks) {
+    const sourceRefPoints = extractReferencePoints(sourceLandmarks);
+    const targetRefPoints = extractReferencePoints(targetLandmarks);
+    
+    if (sourceRefPoints.length < 2 || targetRefPoints.length < 2) {
+        return null;
+    }
+    
+    const matchingPairs = [];
+    sourceRefPoints.forEach(sourcePoint => {
+        const targetPoint = targetRefPoints.find(tp => tp.index === sourcePoint.index);
+        if (targetPoint) {
+            matchingPairs.push({ source: sourcePoint, target: targetPoint });
+        }
+    });
+    
+    if (matchingPairs.length < 2) {
+        return null;
+    }
+    
+    const sourceCentroid = calculateCentroid(matchingPairs.map(pair => pair.source));
+    const targetCentroid = calculateCentroid(matchingPairs.map(pair => pair.target));
+    
+    const sourceAvgDist = calculateAverageDistance(matchingPairs.map(pair => pair.source), sourceCentroid);
+    const targetAvgDist = calculateAverageDistance(matchingPairs.map(pair => pair.target), targetCentroid);
+    
+    const scale = sourceAvgDist > 0 ? targetAvgDist / sourceAvgDist : 1;
+    
+    return {
+        sourceCenter: sourceCentroid,
+        targetCenter: targetCentroid,
+        scale: scale,
+        matchingPoints: matchingPairs.length
+    };
+}
+
+function alignPoseLandmarks(sourceLandmarks, targetLandmarks) {
+    const transform = calculateAlignment(sourceLandmarks, targetLandmarks);
+    
+    if (!transform) {
+        return sourceLandmarks;
+    }
+    
+    const transformedLandmarks = sourceLandmarks.map(landmark => {
+        if (!landmark || typeof landmark.x !== 'number') {
+            return landmark;
+        }
+        
+        const transformed = transformPoint(landmark, transform);
+        
+        return {
+            ...landmark,
+            x: transformed.x,
+            y: transformed.y,
+            z: transformed.z
+        };
+    });
+    
+    return transformedLandmarks;
+}
+
+function alignSideToFrontFor3D(frontResults, sideResults) {
+    if (!frontResults.landmarks || !sideResults.landmarks ||
+        frontResults.landmarks.length === 0 || sideResults.landmarks.length === 0) {
+        return sideResults;
+    }
+    
+    const alignedSideLandmarks = alignPoseLandmarks(
+        sideResults.landmarks[0],
+        frontResults.landmarks[0]
+    );
+    
+    return {
+        ...sideResults,
+        landmarks: [alignedSideLandmarks, ...sideResults.landmarks.slice(1)]
+    };
+}
+
+function createCombinedPose(frontResults, alignedSideResults) {
+    if (!frontResults.landmarks || !alignedSideResults.landmarks ||
+        frontResults.landmarks.length === 0 || alignedSideResults.landmarks.length === 0) {
+        return frontResults;
+    }
+    
+    const frontLandmarks = frontResults.landmarks[0];
+    const sideLandmarks = alignedSideResults.landmarks[0];
+    
+    // Create combined landmarks using X,Y from front and Z from aligned side
+    const combinedLandmarks = frontLandmarks.map((frontLandmark, index) => {
+        const sideLandmark = sideLandmarks[index];
+        
+        if (!frontLandmark || !sideLandmark) {
+            return frontLandmark;
+        }
+        
+        // Use front camera for X,Y positioning and side camera for Z depth
+        // Only use side Z if both landmarks are visible
+        const useAccurateZ = frontLandmark.visibility > 0.5 && sideLandmark.visibility > 0.5;
+        
+        return {
+            ...frontLandmark,
+            x: frontLandmark.x,  // Keep front X
+            y: frontLandmark.y,  // Keep front Y
+            z: useAccurateZ ? sideLandmark.z : frontLandmark.z,  // Use side Z when both are visible
+            visibility: Math.min(frontLandmark.visibility, sideLandmark.visibility) // Use minimum visibility
+        };
+    });
+    
+    return {
+        ...frontResults,
+        landmarks: [combinedLandmarks, ...frontResults.landmarks.slice(1)]
+    };
+}
+// ===== END POSE ALIGNMENT CODE =====
 
 async function askForPermissions() {
     try {
@@ -170,21 +362,65 @@ function startPoseCapture(video) {
                 const startTimeMs = performance.now();
                 const frontOrSide = video.id === 'localVideoFront' ? 'front' : 'side';
                 let results = null;
+                let alignedResults = null;
+                let combinedResults = null;
                 let color = null;
+                
                 switch (frontOrSide) {
                     case 'front':
                         color = 0xff0000;
                         results = await poseLandmarkerFront.detectForVideo(video, startTimeMs);
+                        latestFrontResults = results; // Store front results
+                        
+                        // If we have both front and side, create combined pose
+                        if (latestSideResults && results) {
+                            // First align side to front
+                            const alignedSide = alignSideToFrontFor3D(results, latestSideResults);
+                            // Then create combined pose
+                            combinedResults = createCombinedPose(results, alignedSide);
+                            console.log('Created combined pose with accurate Z values');
+                        }
                         break;
                     case 'side':
                         color = 0x0000ff;
                         results = await poseLandmarkerSide.detectForVideo(video, startTimeMs);
+                        latestSideResults = results; // Store original side results
+                        
+                        // Create aligned version for 3D display
+                        if (latestFrontResults && results) {
+                            alignedResults = alignSideToFrontFor3D(latestFrontResults, results);
+                            console.log('Applied pose alignment to side view for 3D');
+                            
+                            // Also create combined pose when we get new side data
+                            combinedResults = createCombinedPose(latestFrontResults, alignedResults);
+                        }
                         break;
                 }
 
+                // Draw 2D pose landmarks using original coordinates
                 drawPoseLandmarks(results, frontOrSide);
-                drawStickman3D(results, color, frontOrSide);
+                
+                // Draw 3D stick figures
+                if (frontOrSide === 'front') {
+                    // Front view (red)
+                    drawStickman3D(results, 0xff0000, 'front');
+                    
+                    // Combined pose (green) - most accurate with front X,Y and side Z
+                    if (combinedResults) {
+                        drawStickman3D(combinedResults, 0x00ff00, 'combined');
+                    }
+                } else {
+                    // Side view aligned (blue)
+                    const resultsFor3D = alignedResults || results;
+                    drawStickman3D(resultsFor3D, 0x0000ff, 'side');
+                    
+                    // Update combined pose when side data changes
+                    if (combinedResults) {
+                        drawStickman3D(combinedResults, 0x00ff00, 'combined');
+                    }
+                }
 
+                // Update table with original coordinates (not aligned)
                 const tableId = video.id === 'localVideoFront' ? 'frontTableBody' : 'sideTableBody';
                 updateTableData(tableId, results);
             } catch (error) {
