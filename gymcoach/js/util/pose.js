@@ -23,15 +23,15 @@ export const LANDMARK_NAMES = [
 
 // This class handles all blazePose related functionality
 export class Pose {
-    constructor(camera) {
-        this.camera = camera;
+    constructor(cameraHelper) {
+        this.cameraHelper = cameraHelper;
         this.poseLandmarkers = [];
     }
 
     // For each camera initialize a blazepose landmarker
     async initializePoseLandmarkers() {
-        this.camera.devices.forEach(async (device, _) => {
-            this.poseLandmarkers[device.deviceId] = await this.initializePoseDetection();
+        this.cameraHelper.devices.forEach(async (device, index) => {
+            this.poseLandmarkers[index] = await this.initializePoseDetection();
         });
     }
 
@@ -60,6 +60,7 @@ export class Pose {
 
     // Draw the 2D pose landmarks on the canvas, which is on top of the camera video stream inside the video wrapper
     drawPoseLandmarks(results, cameraID) {
+        const color = `#${this.cameraHelper.devices[cameraID].color.toString(16).padStart(6, '0')}`
         const poseCanvas = document.getElementById(`poseCanvas${cameraID}`);
         const poseCtx = poseCanvas.getContext('2d');
         poseCanvas.width = CANVAS_WIDTH;
@@ -71,11 +72,11 @@ export class Pose {
         if (results.landmarks && results.landmarks.length > 0) {
             for (const landmarks of results.landmarks) {
                 this.drawConnectors(poseCtx, poseCanvas, landmarks, {
-                    color: "#ffffffff",
+                    color: color,
                     lineWidth: 2,
                 });
                 this.drawLandmarks(poseCtx, poseCanvas, landmarks, {
-                    color: "#5448ffff", 
+                    color: "#ffffffff", 
                     lineWidth: 2,
                     radius: 3,
                 });
