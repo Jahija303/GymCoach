@@ -99,16 +99,15 @@ export class Three {
                     const landmark2 = landmarks[j];
                     
                     if (landmark1 && landmark2 && landmark1.visibility > 0.5 && landmark2.visibility > 0.5) {
-                        // Fix horizontal flipping by inverting X coordinate and adjusting Y
                         const pos1 = [
-                            1 - landmark1.x,  // Flip X to fix horizontal mirroring
-                            (1 - landmark1.y) + 1,  // Flip Y to match screen coordinates
-                            -landmark1.z      // Negate Z for better depth perception
+                            landmark1.x,
+                            (1 - landmark1.y) + 1, // Flip Y to match screen coordinates
+                            -landmark1.z // Negate Z for better depth perception
                         ];
                         const pos2 = [
-                            1 - landmark2.x,
+                            landmark2.x,
                             (1 - landmark2.y) + 1,
-                            -landmark2.z
+                            -landmark2.z // Negate Z for better depth perception
                         ];
                         this.addLine(pos1, pos2, color, cameraId);
                     }
