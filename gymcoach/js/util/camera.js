@@ -1,15 +1,5 @@
 import { LANDMARK_NAMES } from './pose.js';
 
-const COLORS = [
-    0xffff00, // Yellow
-    0xff0000, // Red
-    0x0000ff, // Blue
-    0x00ff00, // Green
-    0xff00ff, // Magenta
-    0x00ffff, // Cyan
-    0xffffff  // White
-]
-
 // This class handles all camera-related functionality
 export class Camera {
     constructor() {
@@ -21,32 +11,37 @@ export class Camera {
     // Initialize wrappers creates the video boxes and the canvas on which the pose data will be drawn
     // InitializeTables creates the tables in which the keypoint data xyz will be displayed
     async initializeDevices() {
+        this.COLORS = [
+            0xffff00, // Yellow
+            0xff0000, // Red
+            0x0000ff, // Blue
+            0x00ff00, // Green
+        ]
         this.devices = await this.getCameraDevices();
         this.initializeCameraWrappers();
         this.initializeTables(this.devices.map(device => device.label));
     }
 
     // Create camera wrapper html elements and assing camera IDs to the video elements
-    createCameraWrapper(device) {
-        const deviceId = device.deviceId;
+    createCameraWrapper(device, index) {
         const wrapper = document.createElement('div');
         wrapper.className = 'wrapper';
         
         const label = document.createElement('label');
-        label.textContent = device.label || `Camera ${deviceId}`;
+        label.textContent = device.label || `Camera ${index}`;
         
         const videoSection = document.createElement('div');
         videoSection.className = 'video-section';
         
         const video = document.createElement('video');
-        video.id = `localVideo${deviceId}`;
+        video.id = `localVideo${index}`;
         video.className = 'local-video';
         video.autoplay = true;
         video.muted = true;
         video.playsInline = true;
         
         const canvas = document.createElement('canvas');
-        canvas.id = `poseCanvas${deviceId}`;
+        canvas.id = `poseCanvas${index}`;
         canvas.className = 'pose-canvas';
 
         videoSection.appendChild(video);
@@ -62,8 +57,8 @@ export class Camera {
     initializeCameraWrappers() {
         const videoContainer = document.getElementById('video-container');
 
-        this.devices.forEach((device, _) => {
-            const wrapper = this.createCameraWrapper(device);
+        this.devices.forEach((device, index) => {
+            const wrapper = this.createCameraWrapper(device, index);
             videoContainer.prepend(wrapper);
         });
     }
@@ -163,7 +158,7 @@ export class Camera {
         var cameraDevices = [];
         for (var i = 0; i < allDevices.length; i++) {
             var device = allDevices[i];
-            device.color = COLORS[i];
+            device.color = this.COLORS[i];
             if (device.kind == 'videoinput') {
                 cameraDevices.push(device);
             }

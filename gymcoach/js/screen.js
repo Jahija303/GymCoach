@@ -9,7 +9,7 @@ let intervalIDs = {};
 const FPS = 30;
 
 // Capture the camera stream and start pose detection
-function captureCamera(video, specifiedCamera) {
+function captureCamera(video, specifiedCamera, index) {
   if (video.srcObject) {
     video.srcObject.getTracks().forEach(track => track.stop());
     video.srcObject = null;
@@ -41,7 +41,7 @@ function captureCamera(video, specifiedCamera) {
   // Get the camera stream and start the pose capture
   navigator.mediaDevices.getUserMedia(constraints).then(function(camera) {
     video.srcObject = camera;
-    const intervalId = startPoseCapture(video, specifiedCamera);
+    const intervalId = startPoseCapture(video, specifiedCamera, index);
     intervalIDs[specifiedCamera.deviceId] = {
       intervalId: intervalId,
       videoId: videoId
@@ -54,19 +54,18 @@ function captureCamera(video, specifiedCamera) {
 
 // Capture the pose for the selected camera stream
 // Render everything on the screen (2d video streams, 3d render, keypoint data)
-function startPoseCapture(video, camera) {
+function startPoseCapture(video, camera, index) {
     console.log(`Starting pose capture for video: ${video.id}`);
     return setInterval(async () => {
         if (video.srcObject && video.videoWidth > 0) {
             try {
                 const startTimeMs = performance.now();
-                const cameraId = camera.deviceId
                 let results = null;
 
-                results = await pose.poseLandmarkers[cameraId].detectForVideo(video, startTimeMs);
+                results = await pose.poseLandmarkers[index].detectForVideo(video, startTimeMs);
 
-                pose.drawPoseLandmarks(results, cameraId);
-                three.drawStickman3D(results, camera.color, cameraId);
+                pose.drawPoseLandmarks(results, index);
+                three.drawStickman3D(results, camera.color, index);
 
                 const tableId = camera.label
                 cameraHelper.updateTableData(tableId, results);
@@ -90,8 +89,8 @@ document.addEventListener('DOMContentLoaded', async function() {
     await pose.initializePoseLandmarkers();
 
     // For each camera device, start capturing video and rendering the data from blazePose
-    cameraHelper.devices.forEach((device) => {
-        const localVideo = document.getElementById(`localVideo${device.deviceId}`);
-        captureCamera(localVideo, device);
+    cameraHelper.devices.forEach((device, index) => {
+        const localVideo = document.getElementById(`localVideo${index}`);
+        captureCamera(localVideo, device, index);
     });
 });
