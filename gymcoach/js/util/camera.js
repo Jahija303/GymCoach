@@ -10,18 +10,23 @@ const COLORS = [
     0xffffff  // White
 ]
 
+// This class handles all camera-related functionality
 export class Camera {
     constructor() {
         this.stream = null;
         this.devices = null;
     }
 
+    // Must be async to get camera permissions
+    // Initialize wrappers creates the video boxes and the canvas on which the pose data will be drawn
+    // InitializeTables creates the tables in which the keypoint data xyz will be displayed
     async initializeDevices() {
         this.devices = await this.getCameraDevices();
         this.initializeCameraWrappers();
         this.initializeTables(this.devices.map(device => device.label));
     }
 
+    // Create camera wrapper html elements and assing camera IDs to the video elements
     createCameraWrapper(device) {
         const deviceId = device.deviceId;
         const wrapper = document.createElement('div');
@@ -53,6 +58,7 @@ export class Camera {
         return wrapper;
     }
 
+    // For each camera device, create a video wrapper
     initializeCameraWrappers() {
         const videoContainer = document.getElementById('video-container');
 
@@ -62,6 +68,7 @@ export class Camera {
         });
     }
 
+    // For each camera device, create a table to display pose data
     initializeTables(cameras) {
         const dataSection = document.getElementById('data-section');
         cameras.forEach(camera => {
@@ -99,6 +106,7 @@ export class Camera {
         })
     }
 
+    // Update pose data table
     updateTableData(tableId, results) {
         const tableBody = document.getElementById(tableId);
         const rows = tableBody.rows;
