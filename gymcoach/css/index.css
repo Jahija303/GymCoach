@@ -39,7 +39,7 @@ h1 {
   background-color: #ccc;
 }
 
-#localVideoFront {
+.local-video {
   width: var(--video-width);
   height: var(--video-height);
   display: block;
@@ -47,25 +47,7 @@ h1 {
   object-fit: contain; /* This prevents cropping and maintains aspect ratio */
 }
 
-#localVideoSide {
-  width: var(--video-width);
-  height: var(--video-height);
-  display: block;
-  border: 1px solid #555;
-  object-fit: contain; /* This prevents cropping and maintains aspect ratio */
-}
-
-#poseCanvasFront {
-  position: absolute;
-  top: 0;
-  left: 0;
-  pointer-events: none;
-  border: 1px solid #555;
-  width: var(--video-width);
-  height: var(--video-height);
-}
-
-#poseCanvasSide {
+.pose-canvas {
   position: absolute;
   top: 0;
   left: 0;
@@ -81,9 +63,10 @@ h1 {
   border: 1px solid #ccc;
   background-color: white;
   font-size: 16px;
+  height: 450px;
 }
 
-.data-section {
+#data-section {
   display: flex;
   height: var(--video-height);
   gap: 10px;
