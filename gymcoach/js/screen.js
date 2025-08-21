@@ -1,6 +1,7 @@
 import { Camera } from './util/camera.js';
 import { Three } from './util/three.js';
 import { Pose } from './util/pose.js';
+import { TransformMatrix } from './util/transform_matrix.js';
 
 let three;
 let cameraHelper;
