@@ -15,65 +15,13 @@
 <body>
   <div id="video-container">
     <div class="wrapper">
-      <label>Front Camera</label>
-      <select id="cameraSelect1">
-        <option value="">Select Camera</option>
-      </select>
-      <div class="video-section">
-        <video id="localVideoFront" autoplay muted playsinline></video>
-        <canvas id="poseCanvasFront"></canvas>
+      <label>3D Model</label>
+      <div id="three" class="three">
       </div>
     </div>
     <div class="wrapper">
-      <label>Side Camera</label>
-      <select id="cameraSelect2">
-        <option value="">Select Camera</option>
-      </select>
-      <div class="video-section">
-        <video id="localVideoSide" autoplay muted playsinline></video>
-        <canvas id="poseCanvasSide"></canvas>
-      </div>
-    </div>
-    <div class="wrapper">
-      <div class="video-section three">
-        <div id="three">
-        </div>
-      </div>
-    </div>
-    <div class="wrapper">
-      <div class="data-section">
-        <div class="table-container">
-          <h3>Front Camera</h3>
-          <table id="frontDataTable">
-            <thead>
-              <tr>
-                <th>Keypoint</th>
-                <th>X</th>
-                <th>Y</th>
-                <th>Z</th>
-                <th>V</th>
-              </tr>
-            </thead>
-            <tbody id="frontTableBody">
-            </tbody>
-          </table>
-        </div>
-        <div class="table-container">
-          <h3>Side Camera</h3>
-          <table id="sideDataTable">
-            <thead>
-              <tr>
-                <th>Keypoint</th>
-                <th>X</th>
-                <th>Y</th>
-                <th>Z</th>
-                <th>V</th>
-              </tr>
-            </thead>
-            <tbody id="sideTableBody">
-            </tbody>
-          </table>
-        </div>
+      <label>Model Data</label>
+      <div id="data-section">
       </div>
     </div>
   </div>
