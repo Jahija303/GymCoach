@@ -21,18 +21,21 @@ export const LANDMARK_NAMES = [
     'right_heel', 'left_foot_index', 'right_foot_index'
 ];
 
+// This class handles all blazePose related functionality
 export class Pose {
     constructor(camera) {
         this.camera = camera;
         this.poseLandmarkers = [];
     }
 
+    // For each camera initialize a blazepose landmarker
     async initializePoseLandmarkers() {
         this.camera.devices.forEach(async (device, _) => {
             this.poseLandmarkers[device.deviceId] = await this.initializePoseDetection();
         });
     }
 
+    // Load the blazePose model and initialize it with default options, return it as a result
     async initializePoseDetection() {
         const vision = await FilesetResolver.forVisionTasks(
                 "/node_modules/@mediapipe/tasks-vision/wasm"
@@ -53,6 +56,7 @@ export class Pose {
         return poseLandmarker;
     }
 
+    // Draw the 2D pose landmarks on the canvas, which is on top of the camera video stream inside the video wrapper
     drawPoseLandmarks(results, cameraID) {
         const poseCanvas = document.getElementById(`poseCanvas${cameraID}`);
         const poseCtx = poseCanvas.getContext('2d');
@@ -78,6 +82,7 @@ export class Pose {
         poseCtx.restore();
     }
 
+    // Draw connectors between landmarks
     drawConnectors(ctx, poseCanvas, landmarks, style) {
         ctx.strokeStyle = style.color;
         ctx.lineWidth = style.lineWidth;
@@ -95,6 +100,7 @@ export class Pose {
         });
     }
 
+    // Draw the landmarks (keypoints)
     drawLandmarks(ctx, poseCanvas, landmarks, style) {
         ctx.fillStyle = style.color;
 

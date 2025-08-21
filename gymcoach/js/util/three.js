@@ -2,8 +2,9 @@ import * as THREE from 'three';
 import { CANVAS_HEIGHT, CANVAS_WIDTH, POSE_CONNECTIONS } from './pose.js';
 import { OrbitControls } from '../../node_modules/three/examples/jsm/controls/OrbitControls.js';
 
-
+// This class handles all 3D rendering using Three.js
 export class Three {
+    // Create a scene and camera and set the correct camera position, add rotation feature
     constructor() {
         const scene = new THREE.Scene();
         scene.background = new THREE.Color(0xf5f5f5);
@@ -37,6 +38,8 @@ export class Three {
         animate();
     }
 
+    // Draw a line from point a to point b with a certain color
+    // add an optional cameraId parameter to each line so we know which to delete/update
     addLine(startCoords, endCoords, color = 0xff0000, cameraId = null) {
         if (!window.threeJSContext) {
             console.error('Three.js not initialized');
@@ -61,6 +64,7 @@ export class Three {
         return line;
     }
     
+    // Delete 3D Lines for a specific camera
     clearPoseLines(cameraId = null) {
         if (!window.threeJSContext) {
             console.error('Three.js not initialized');
@@ -84,7 +88,8 @@ export class Three {
             line.material.dispose();
         });
     }
-    
+
+    // Draw the 3D stickman representation
     drawStickman3D(results, color, cameraId) {
         this.clearPoseLines(cameraId);
         if (results.landmarks && results.landmarks.length > 0) {

@@ -8,6 +8,7 @@ let pose;
 let intervalIDs = {};
 const FPS = 30;
 
+// Capture the camera stream and start pose detection
 function captureCamera(video, specifiedCamera) {
   if (video.srcObject) {
     video.srcObject.getTracks().forEach(track => track.stop());
@@ -25,7 +26,8 @@ function captureCamera(video, specifiedCamera) {
   if (!specifiedCamera) {
     return;
   }
-  
+
+  // Define which camera to use
   var constraints = {
     audio: false,
     video: {
@@ -36,6 +38,7 @@ function captureCamera(video, specifiedCamera) {
     }
   };
 
+  // Get the camera stream and start the pose capture
   navigator.mediaDevices.getUserMedia(constraints).then(function(camera) {
     video.srcObject = camera;
     const intervalId = startPoseCapture(video, specifiedCamera);
@@ -49,6 +52,8 @@ function captureCamera(video, specifiedCamera) {
   });
 }
 
+// Capture the pose for the selected camera stream
+// Render everything on the screen (2d video streams, 3d render, keypoint data)
 function startPoseCapture(video, camera) {
     console.log(`Starting pose capture for video: ${video.id}`);
     return setInterval(async () => {
@@ -72,6 +77,9 @@ function startPoseCapture(video, camera) {
     }, 1000 / FPS);
 }
 
+// When the page loads, initialize the 3D scene and camera
+// Initialize the camera and get all available devices in an array (ask for permissions as well)
+// Initialize the blazePose model for each device and store the landmarker in an array
 document.addEventListener('DOMContentLoaded', async function() {
     three = new Three();
 
@@ -81,6 +89,7 @@ document.addEventListener('DOMContentLoaded', async function() {
     pose = new Pose(cameraHelper);
     await pose.initializePoseLandmarkers();
 
+    // For each camera device, start capturing video and rendering the data from blazePose
     cameraHelper.devices.forEach((device) => {
         const localVideo = document.getElementById(`localVideo${device.deviceId}`);
         captureCamera(localVideo, device);
