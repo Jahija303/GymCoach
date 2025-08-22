@@ -92,7 +92,6 @@ export class Three {
     // Draw the 3D stickman representation
     drawStickman3D(results, color, cameraId) {
         this.clearPoseLines(cameraId);
-        console.log('drawing stickman 3d for camera:', cameraId, ' results are ', results, ' length is ', results.landmarks.length);
         if (results.landmarks && results.landmarks.length > 0) {
             for (const landmarks of results.landmarks) {
                 // console.log('SITCKMAN PASSED:', cameraId, ' landmarks are ', landmarks);
