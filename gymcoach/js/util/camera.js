@@ -15,7 +15,7 @@ export class Camera {
             0xffff00, // Yellow
             0xff0000, // Red
             0x0000ff, // Blue
-            0x00ff00, // Green
+            0x006400, // Dark Green
         ]
         this.devices = await this.getCameraDevices();
         this.initializeCameraWrappers();
