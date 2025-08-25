@@ -1,15 +1,12 @@
 import { Camera } from './util/camera.js';
 import { Three } from './util/three.js';
 import { Pose } from './util/pose.js';
-import { TransformPose } from './util/transform_pose.js';
 
 let three;
 let cameraHelper;
 let pose;
-let transformer;
 let intervalIDs = {};
 let cameraKeypoints = {};
-let lastTransformedAt = null;
 const FPS = 30;
 
 // Capture the camera stream and start pose detection
@@ -56,37 +53,6 @@ function captureCamera(video, specifiedCamera, index) {
   });
 }
 
-function renderTransformedPose() {
-  // todo
-  // render the transformed pose in the 3d scene
-  // when was the last time it was run ? check that it does not run twice for the same frame X
-  // get the first two devices and their camera keypoints
-  // pass the two keypoints to the transformer to align the second to the first
-  // draw a 3d stickman with the combined pose
-  let currentTime = performance.now();
-
-  // If the last transformation was recent, skip this frame
-  if (lastTransformedAt && currentTime - lastTransformedAt < 1000 / FPS) {
-    return;
-  } else {
-    lastTransformedAt = performance.now();
-  }
-
-  const deviceIds = cameraHelper.devices.map((device) => device.deviceId);
-  const [firstDeviceId, secondDeviceId] = deviceIds;
-  
-  if (firstDeviceId && secondDeviceId) {
-    const firstKeypoints = cameraKeypoints[firstDeviceId];
-    const secondKeypoints = cameraKeypoints[secondDeviceId];
-
-    if (firstKeypoints && secondKeypoints) {
-      const transformedResults = transformer.align(firstKeypoints.landmarks[0], secondKeypoints.landmarks[0]);
-      three.drawStickman3D({landmarks: [transformedResults]}, cameraHelper.COLORS[3], 'combined');
-    }
-  }
-
-}
-
 // Capture the pose for the selected camera stream
 // Render everything on the screen (2d video streams, 3d render, keypoint data)
 function startPoseCapture(video, camera, index) {
@@ -102,8 +68,6 @@ function startPoseCapture(video, camera, index) {
                 pose.drawPoseLandmarks(results, index);
                 three.drawStickman3D(results, camera.color, index);
 
-                renderTransformedPose()
-
                 const tableId = camera.label
                 cameraHelper.updateTableData(tableId, results);
             } catch (error) {
@@ -117,7 +81,6 @@ function startPoseCapture(video, camera, index) {
 // Initialize the camera and get all available devices in an array (ask for permissions as well)
 // Initialize the blazePose model for each device and store the landmarker in an array
 document.addEventListener('DOMContentLoaded', async function() {
-    transformer = new TransformPose();
     three = new Three();
 
     cameraHelper = new Camera();
