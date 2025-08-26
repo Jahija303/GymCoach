@@ -44,3 +44,11 @@ results v2:
 - Without calibrating the cameras SMPL-X can still work, but the body will not have a true 3D position and may float, however we still might get correct joint angles even with the incorrect scale factor. However extra calibration does really help and the optimizer does not have to guess how the two inputs relate
 
 - Anipose requires camera calibration, camera calibration can be done with a reference item (like a checkerboard) recorded from both cameras at the same time. Anipose provides pre-built extensions for calibration, triangulation and computing angles between three keypoints.
+
+# 26.08.2025
+
+branch: 235-better-3d-positioning-results
+todo:
+- From what we saw yesterday, calibrating the camera with a checkerboard each time the user wants to start an exercise does not make much sense, however we have another idea for calibration where we use the full image of the frontal side of the user and use this as a calibration reference
+- We will explore SMPL-X (https://github.com/vchoutas/smplx) and see if there is a way this works reliably for a single camera setup, as it is intended
+- We will also explore OpenMVG (https://github.com/openMVG/openMVG) which could be the missing piece for our SfM algorithm, meaning that it coulǜ be able to reconstruct an accurate 3D representation of the user from a 2 view input
