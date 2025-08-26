@@ -52,3 +52,6 @@ todo:
 - From what we saw yesterday, calibrating the camera with a checkerboard each time the user wants to start an exercise does not make much sense, however we have another idea for calibration where we use the full image of the frontal side of the user and use this as a calibration reference
 - We will explore SMPL-X (https://github.com/vchoutas/smplx) and see if there is a way this works reliably for a single camera setup, as it is intended
 - We will also explore OpenMVG (https://github.com/openMVG/openMVG) which could be the missing piece for our SfM algorithm, meaning that it coulǜ be able to reconstruct an accurate 3D representation of the user from a 2 view input
+
+progress:
+- Using SMPL-X has proven to be a slight challenge due to all the python setup required to run it, in theory the model runs, but not really accurately, however the main concern is the speed of the model. It takes a long time (a few seconds approximately) to get a render out, which will be a problem as our application needs to run in real time. Potential solution for this is to try and set it up on my PC with a 4060 and run some tests again to get a confident verdict.
