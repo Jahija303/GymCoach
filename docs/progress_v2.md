@@ -55,3 +55,4 @@ todo:
 
 progress:
 - Using SMPL-X has proven to be a slight challenge due to all the python setup required to run it, in theory the model runs, but not really accurately, however the main concern is the speed of the model. It takes a long time (a few seconds approximately) to get a render out, which will be a problem as our application needs to run in real time. Potential solution for this is to try and set it up on my PC with a 4060 and run some tests again to get a confident verdict.
+- Using openMVG is still a work in progress, we are trying to make the algorithm work, but we are experiencing some technical issues making it work, also the same concern we had for SMPL-X goes for openMVG, we are not completely sure they can work in real time without a huge delay.

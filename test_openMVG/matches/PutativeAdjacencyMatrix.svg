@@ -1,0 +1,12 @@
+<?xml version="1.0" standalone="yes"?>
+<!-- SVG graphic -->
+<svg xmlns='http://www.w3.org/2000/svg' xmlns:xlink='http://www.w3.org/1999/xlink'
+width="25px" height="25px" preserveAspectRatio="xMinYMin meet" viewBox="0 0 25 25" version="1.1">
+<rect x="5" y="0" width="2.5" height="2.5" fill="rgb(255,0,0)" opacity="1"/>
+<text x="15" y="5" font-size="5" fill="black">0</text>
+<text x="15" y="5" font-size="5" fill="black">2</text>
+<polyline points="15,10,15,0" stroke="black" stroke-width="1" fill="none" opacity="1"/>
+<text x="5" y="15" font-size="5" fill="black">0</text>
+<text x="5" y="15" font-size="5" fill="black">2</text>
+<polyline points="10,15,0,15" stroke="black" stroke-width="1" fill="none" opacity="1"/>
+</svg>

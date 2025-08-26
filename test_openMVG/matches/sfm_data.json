@@ -1,0 +1,66 @@
+{
+    "sfm_data_version": "0.3",
+    "root_path": "/home/edna/CODE/GymCoach/test/images",
+    "views": [
+        {
+            "key": 1,
+            "value": {
+                "polymorphic_id": 1073741824,
+                "ptr_wrapper": {
+                    "id": 2147483649,
+                    "data": {
+                        "local_path": "",
+                        "filename": "1.jpeg",
+                        "width": 2832,
+                        "height": 2128,
+                        "id_view": 1,
+                        "id_intrinsic": 0,
+                        "id_pose": 1
+                    }
+                }
+            }
+        },
+        {
+            "key": 0,
+            "value": {
+                "polymorphic_id": 1073741824,
+                "ptr_wrapper": {
+                    "id": 2147483650,
+                    "data": {
+                        "local_path": "",
+                        "filename": "0.jpeg",
+                        "width": 2832,
+                        "height": 2128,
+                        "id_view": 0,
+                        "id_intrinsic": 0,
+                        "id_pose": 0
+                    }
+                }
+            }
+        }
+    ],
+    "intrinsics": [
+        {
+            "key": 0,
+            "value": {
+                "polymorphic_id": 2147483649,
+                "polymorphic_name": "pinhole",
+                "ptr_wrapper": {
+                    "id": 2147483651,
+                    "data": {
+                        "width": 2832,
+                        "height": 2128,
+                        "focal_length": 3400.0,
+                        "principal_point": [
+                            1416.0,
+                            1064.0
+                        ]
+                    }
+                }
+            }
+        }
+    ],
+    "extrinsics": [],
+    "structure": [],
+    "control_points": []
+}
