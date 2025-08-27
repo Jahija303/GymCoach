@@ -46,14 +46,16 @@ cd openMVG
 
 ### Step 2: Build openMVG
 ```bash
-mkdir build && cd build
-cmake .. -DCMAKE_BUILD_TYPE=Release
-make -j$(nproc)
+cd ~/
+mkdir openMVG_Build && cd openMVG_Build
+cmake -DCMAKE_BUILD_TYPE=RELEASE ../openMVG/src/
+cmake --build . --parallel $(nproc)
 ```
 
 ### Step 3: Install (Optional)
 ```bash
-sudo make install
+cd ~/openMVG_Build
+sudo cmake --build . --target install
 ```
 
 ## Basic SfM Pipeline Workflow
@@ -130,7 +132,7 @@ mkdir -p ~/gymcoach_sfm/{images,output}
 # Copy your calibration images to ~/gymcoach_sfm/images/
 
 # Run the pipeline
-cd ~/openMVG/build/Linux-x86_64-RELEASE
+cd ~/openMVG_Build/Linux-x86_64-RELEASE
 
 # Image listing
 ./openMVG_main_SfMInit_ImageListing \
