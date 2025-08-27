@@ -57,3 +57,15 @@ progress:
 - Using SMPL-X has proven to be a slight challenge due to all the python setup required to run it, in theory the model runs, but not really accurately, however the main concern is the speed of the model. It takes a long time (a few seconds approximately) to get a render out, which will be a problem as our application needs to run in real time. Potential solution for this is to try and set it up on my PC with a 4060 and run some tests again to get a confident verdict.
 - Using openMVG is still a work in progress, we are trying to make the algorithm work, but we are experiencing some technical issues making it work, also the same concern we had for SMPL-X goes for openMVG, we are not completely sure they can work in real time without a huge delay.
 - OpenMVG is best at offline, high quality 3D reconstruction but it is not as quick and effective in real time as we would hope it would be. It is also GPU heavy. The only applicable use case we could think of is using it to try and calibrate our cameras based on the 3D spacial reconstruction.
+
+# 27.08.2025
+
+branch: 235-better-3d-positioning-results
+
+progress:
+- Install then setup openMVG on a PC with a 4060
+- Tested openMVG with default images (castle) and visualised the results in mesh lab, the results showed many keypoints with a general idea of the castle shape.
+- Took a picture of Jahija in front of a blank white background from multiple angles (5 pictures) and tried to run the same pipeline
+- The issue we encountered is that the images have missing metadata compared to the default images (focal length). To get around this we manually specified the focal length just to get any results. When we visualised the result in mesh lab, there were not many keypoints and there are a few reasons for this. Main reason is the lack of distinctive features (smooth skin surface and clothing makes it difficult).
+- This could be another potential problem because webcams (compared to mobile devices) have even less metadata in images meaning we would not have a predefined focal length but we would have to figure out a way to specify a value that is close enough to the cameras actual value.
+- OpenMVG could estimate focal length but it needs more than 2 images and it needs more image overlap so maybe it could be possible to use openMVG for calibration just to get that estimated focal length but this needs more testing.
