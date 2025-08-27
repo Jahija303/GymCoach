@@ -94,7 +94,7 @@ openMVG_main_ComputeMatches \
 ### Step 5: Structure from Motion
 ```bash
 # Incremental SfM reconstruction
-openMVG_main_IncrementalSfM \
+openMVG_main_SfM \
     -i /path/to/output/sfm_data.json \
     -m /path/to/output \
     -o /path/to/output/reconstruction
@@ -162,26 +162,3 @@ cd ~/openMVG/build/Linux-x86_64-RELEASE
 - **Camera extrinsics**: Rotation and translation between cameras
 - **3D point cloud**: Sparse reconstruction of the scene
 - **Camera poses**: Position and orientation of each camera
-
-## Integration with GymCoach
-
-The camera calibration results can be used for:
-1. **Triangulation**: More accurate 3D keypoint estimation
-2. **Depth calculation**: Better Z-values for BlazePose keypoints
-3. **Coordinate transformation**: Converting between camera coordinate systems
-
-## Common Issues and Solutions
-
-1. **Not enough features**: Use more distinctive objects in your scene
-2. **Poor matches**: Ensure sufficient overlap between images
-3. **Failed reconstruction**: Try with more images or adjust matching parameters
-4. **Scale ambiguity**: Add known measurements or use a reference object
-
-## Next Steps for GymCoach
-
-1. Use openMVG to calibrate your two cameras
-2. Extract camera intrinsics and extrinsics
-3. Implement triangulation using the calibration data
-4. Apply to your BlazePose keypoints for better 3D positioning
-
-This approach is more lightweight than VoxelPose but requires the one-time calibration step mentioned in your research.
