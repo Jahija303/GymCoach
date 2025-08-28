@@ -69,3 +69,23 @@ progress:
 - The issue we encountered is that the images have missing metadata compared to the default images (focal length). To get around this we manually specified the focal length just to get any results. When we visualised the result in mesh lab, there were not many keypoints and there are a few reasons for this. Main reason is the lack of distinctive features (smooth skin surface and clothing makes it difficult).
 - This could be another potential problem because webcams (compared to mobile devices) have even less metadata in images meaning we would not have a predefined focal length but we would have to figure out a way to specify a value that is close enough to the cameras actual value.
 - OpenMVG could estimate focal length but it needs more than 2 images and it needs more image overlap so maybe it could be possible to use openMVG for calibration just to get that estimated focal length but this needs more testing.
+
+# 28.08.2025
+
+branch: 235-better-3d-positioning-results
+
+todo:
+- Let the user know to position in such a way that the entire body is visible
+- Grab a screenshot from each camera and save the files in a tmp location
+- Run openMVG command `openMVG_main_SfMInit_ImageListing` to get the sfm_data.bin file with camera data
+- Run openMVG command `openMVG_main_ConvertSfM_DataFormat` to convert the bin file to a json
+- Read the resulting json file and extract the camera intrinsics and extrinsics
+- Pass this camera data and the blazepose keypoints from both cameras to the triangulator.js
+- Render the resulting coordinates in three.js
+
+progress:
+- We have experimented with openMVG to try and calculate the camera intrinsics and extrinsics with two image inputs, but failed. The main issue is that only two images is not enough for openMVG to estimate the exact data, with three images it worked perfectly. We must note that the three images must each be from a different perspective of the same object, it is not enough for the user to just rotate around its own axis. We should probably first try to prove that the triangulation will work IF we have the correct camera parameters, if we can prove this we can invest more time into looking for ways to get exact camera params.
+
+todo 02:
+- Manually calculate the camera intrinsics and extrinsics for both webcams (take multiple images from each and use openMVG)
+- Use this hardcoded data and test if the triangulation will work correctly before proceeding
