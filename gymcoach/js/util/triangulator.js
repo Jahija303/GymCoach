@@ -251,7 +251,7 @@ class StereoTriangulator {
                         [kp2.x, kp2.y],
                         cameraKey2
                     );
-                    
+
                     triangulated3D.push({
                         x: point3D[0],
                         y: point3D[1],
