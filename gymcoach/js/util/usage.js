@@ -60,7 +60,7 @@ const intrinsicsData = [
     {
             "key": 0,
             "device_name": "laptop_cam",
-            "device_id": "123",
+            "device_id": "c6c59a2602f6a2217eb8caf898bd3451511bad37efdbd43904f505675e7b4e53",
             "value": {
                 "polymorphic_id": 2147483649,
                 "polymorphic_name": "pinhole_radial_k3",
@@ -86,7 +86,7 @@ const intrinsicsData = [
     {
             "key": 1,
             "device_name": "external_cam",
-            "device_id": "123",
+            "device_id": "5c85779bcf48c9ce2daed6c2b8d866addb63cb8cc791ff057c644d7968351ebe",
             "value": {
                 "polymorphic_id": 2147483649,
                 "polymorphic_name": "pinhole_radial_k3",
@@ -114,27 +114,6 @@ const intrinsicsData = [
 // Initialize the triangulator
 const triangulator = new StereoTriangulator(intrinsicsData, extrinsicsData);
 
-// Function to process BlazePose results from both cameras
-function processBlazePoseResults(keypoints1, keypoints2) {
-    try {
-        // Triangulate 3D keypoints
-        const keypoints3D = triangulator.triangulateBlazePoseKeypoints(
-            keypoints1,
-            2, // Camera key for first camera
-            keypoints2,
-            4  // Camera key for second camera
-        );
-    }
-}
-
-// Function to integrate with your existing BlazePose pipeline
-function integrateWithBlazePose() {
-    // This would be called after you get results from both cameras
-    const triangulated3D = processBlazePoseResults(
-        blazePoseKeypoints1, 
-        blazePoseKeypoints2
-    );
-}
 
 // Advanced usage: Real-time processing
 class BlazePose3DProcessor {
@@ -202,6 +181,3 @@ function onNewFrame(keypoints1, keypoints2) {
     // Use smoothed3D for your application
     return smoothed3D;
 }
-
-// Run the example
-integrateWithBlazePose();
