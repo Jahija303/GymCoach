@@ -90,30 +90,26 @@ export class Three {
     }
 
     // Draw the 3D stickman representation
-    drawStickman3D(results, color, cameraId) {
+    drawStickman3D(landmarks, color, cameraId) {
         this.clearPoseLines(cameraId);
-        if (results.landmarks && results.landmarks.length > 0) {
-            for (const landmarks of results.landmarks) {
-                // console.log('SITCKMAN PASSED:', cameraId, ' landmarks are ', landmarks);
-                POSE_CONNECTIONS.forEach(([i, j]) => {
-                    const landmark1 = landmarks[i];
-                    const landmark2 = landmarks[j];
-                    
-                    if (landmark1 && landmark2 && landmark1.visibility > 0.5 && landmark2.visibility > 0.5) {
-                        const pos1 = [
-                            landmark1.x,
-                            (1 - landmark1.y) + 1, // Flip Y to match screen coordinates
-                            -landmark1.z // Negate Z for better depth perception
-                        ];
-                        const pos2 = [
-                            landmark2.x,
-                            (1 - landmark2.y) + 1,
-                            -landmark2.z // Negate Z for better depth perception
-                        ];
-                        this.addLine(pos1, pos2, color, cameraId);
-                    }
-                });
+        // console.log('SITCKMAN PASSED:', cameraId, ' landmarks are ', landmarks);
+        POSE_CONNECTIONS.forEach(([i, j]) => {
+            const landmark1 = landmarks[i];
+            const landmark2 = landmarks[j];
+            
+            if (landmark1 && landmark2 && landmark1.visibility > 0.5 && landmark2.visibility > 0.5) {
+                const pos1 = [
+                    landmark1.x,
+                    (1 - landmark1.y) + 1, // Flip Y to match screen coordinates
+                    -landmark1.z // Negate Z for better depth perception
+                ];
+                const pos2 = [
+                    landmark2.x,
+                    (1 - landmark2.y) + 1,
+                    -landmark2.z // Negate Z for better depth perception
+                ];
+                this.addLine(pos1, pos2, color, cameraId);
             }
-        }
+        });
     }
 }

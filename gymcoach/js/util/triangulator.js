@@ -1,14 +1,130 @@
-class StereoTriangulator {
-    constructor(intrinsics, extrinsics) {
-        this.intrinsics = this.parseIntrinsics(intrinsics);
-        this.extrinsics = this.parseExtrinsics(extrinsics);
+const extrinsicsData = [
+        {
+            "key": 0,
+            "device_name": "laptop_cam",
+            "device_id": "c6c59a2602f6a2217eb8caf898bd3451511bad37efdbd43904f505675e7b4e53",
+            "value": {
+                "rotation": [
+                    [
+                        0.9994263985769297,
+                        -0.0033905065861522299,
+                        0.03369537494430535
+                    ],
+                    [
+                        0.004279933294603813,
+                        0.9996433755483238,
+                        -0.026359133015834318
+                    ],
+                    [
+                        -0.03359398753559637,
+                        0.026488227336723823,
+                        0.9990844898275703
+                    ]
+                ],
+                "center": [
+                    -0.039157284812806638,
+                    0.09134569728949421,
+                    -0.2497508521039661
+                ]
+            }
+        },
+        {
+            "key": 1,
+            "device_name": "external_cam",
+            "device_id": "5c85779bcf48c9ce2daed6c2b8d866addb63cb8cc791ff057c644d7968351ebe",
+            "value": {
+                "rotation": [
+                    [
+                        0.7975303128668473,
+                        0.0626394695598846,
+                        0.6000180804873841
+                    ],
+                    [
+                        -0.02945414114062568,
+                        0.9974517685343063,
+                        -0.06498017403372238
+                    ],
+                    [
+                        -0.6025594191680824,
+                        0.034150641297654087,
+                        0.7973430128061462
+                    ]
+                ],
+                "center": [
+                    1.0978753524509717,
+                    0.26713902963526806,
+                    0.24711853543123198
+                ]
+            }
+        },
+];
+
+const intrinsicsData = [
+    {
+            "key": 0,
+            "device_name": "laptop_cam",
+            "device_id": "c6c59a2602f6a2217eb8caf898bd3451511bad37efdbd43904f505675e7b4e53",
+            "value": {
+                "polymorphic_id": 2147483649,
+                "polymorphic_name": "pinhole_radial_k3",
+                "ptr_wrapper": {
+                    "id": 2147483652,
+                    "data": {
+                        "width": 1600,
+                        "height": 1200,
+                        "focal_length": 925.8363072132307,
+                        "principal_point": [
+                            750.2385492176366,
+                            670.8484096780304
+                        ],
+                        "disto_k3": [
+                            0.028722041026780624,
+                            0.08575024821506944,
+                            -0.11633708450381754
+                        ]
+                    }
+                }
+            }
+        },
+    {
+            "key": 1,
+            "device_name": "external_cam",
+            "device_id": "5c85779bcf48c9ce2daed6c2b8d866addb63cb8cc791ff057c644d7968351ebe",
+            "value": {
+                "polymorphic_id": 2147483649,
+                "polymorphic_name": "pinhole_radial_k3",
+                "ptr_wrapper": {
+                    "id": 2147483652,
+                    "data": {
+                        "width": 1600,
+                        "height": 900,
+                        "focal_length": 1027.799075163841,
+                        "principal_point": [
+                            690.2165444936014,
+                            777.7579150457667
+                        ],
+                        "disto_k3": [
+                            0.011201482123224093,
+                            0.06511654286639639,
+                            -0.19514421123446228
+                        ]
+                    }
+                }
+            }
+        }
+];
+
+export class StereoTriangulator {
+    constructor() {
+        this.intrinsics = this.parseIntrinsics(intrinsicsData);
+        this.extrinsics = this.parseExtrinsics(extrinsicsData);
         this.cameras = this.setupCameras();
     }
 
     parseIntrinsics(intrinsicsData) {
         const intrinsics = {};
         intrinsicsData.forEach(item => {
-            const key = item.key;
+            const key = item.device_id;
             const data = item.value.ptr_wrapper.data;
             intrinsics[key] = {
                 width: data.width,
@@ -24,7 +140,7 @@ class StereoTriangulator {
     parseExtrinsics(extrinsicsData) {
         const extrinsics = {};
         extrinsicsData.forEach(item => {
-            extrinsics[item.key] = {
+            extrinsics[item.device_id] = {
                 rotation: item.value.rotation,
                 center: item.value.center
             };
@@ -72,10 +188,7 @@ class StereoTriangulator {
         ];
         
         // Convert center to translation: t = -R * C
-        const t = this.matrixVectorMultiply(
-            this.transposeMatrix(R), 
-            C.map(x => -x)
-        );
+        const t = this.matrixVectorMultiply(R, C.map(x => -x));
         
         // Create [R|t] matrix
         const Rt = [
@@ -86,6 +199,14 @@ class StereoTriangulator {
         
         // P = K * [R|t]
         return this.matrixMultiply(K, Rt);
+    }
+
+    // Convert BlazePose normalized coordinates to pixel coordinates
+    blazePoseToPixel(point, intrinsics) {
+        // BlazePose returns normalized coordinates (0-1), convert to pixels
+        const x = point.x * intrinsics.width;
+        const y = point.y * intrinsics.height;
+        return [x, y];
     }
 
     // Undistort 2D points using radial distortion model
@@ -133,9 +254,13 @@ class StereoTriangulator {
             throw new Error(`Camera not found: ${cameraKey1} or ${cameraKey2}`);
         }
         
+        // Convert BlazePose normalized coordinates to pixels
+        const pixel1 = this.blazePoseToPixel(point1, camera1.intrinsics);
+        const pixel2 = this.blazePoseToPixel(point2, camera2.intrinsics);
+        
         // Undistort points
-        const undistorted1 = this.undistortPoint(point1, camera1.intrinsics);
-        const undistorted2 = this.undistortPoint(point2, camera2.intrinsics);
+        const undistorted1 = this.undistortPoint(pixel1, camera1.intrinsics);
+        const undistorted2 = this.undistortPoint(pixel2, camera2.intrinsics);
         
         // Set up linear system for triangulation using DLT (Direct Linear Transform)
         const P1 = camera1.projection;
@@ -172,67 +297,87 @@ class StereoTriangulator {
             ]
         ];
         
-        // Solve using SVD (simplified approach)
+        // Solve using improved DLT
         const point3D = this.solveDLT(A);
         
         return point3D;
     }
 
-    // Simplified DLT solver using least squares
+    // Improved DLT solver using least squares with proper SVD approximation
     solveDLT(A) {
-        // This is a simplified implementation
-        // For production, consider using a proper SVD library
-        
-        // Build normal equations: A^T * A * x = 0
+        // Build A^T * A
         const AT = this.transposeMatrix(A);
         const ATA = this.matrixMultiply(AT, A);
         
-        // Find the eigenvector corresponding to the smallest eigenvalue
-        // This is a simplified approach - use proper SVD for better results
-        const solution = this.solveHomogeneous(ATA);
+        // Use power iteration to find the eigenvector with smallest eigenvalue
+        let x = [1, 1, 1, 1]; // Initial guess
+        let prevX = [0, 0, 0, 0];
+        
+        // Inverse power iteration for smallest eigenvalue
+        for (let iter = 0; iter < 50; iter++) {
+            prevX = [...x];
+            
+            // Solve (ATA + λI)x = x for small λ to avoid singularity
+            const lambda = 1e-6;
+            const ATAShifted = ATA.map((row, i) => 
+                row.map((val, j) => i === j ? val + lambda : val)
+            );
+            
+            // Solve linear system using Gauss-Seidel iteration
+            x = this.solveLinearSystem(ATAShifted, x);
+            
+            // Normalize
+            const norm = Math.sqrt(x.reduce((sum, val) => sum + val * val, 0));
+            if (norm > 1e-10) {
+                x = x.map(val => val / norm);
+            }
+            
+            // Check convergence
+            const diff = x.reduce((sum, val, i) => sum + Math.abs(val - prevX[i]), 0);
+            if (diff < 1e-8) break;
+        }
         
         // Normalize by w coordinate
-        if (Math.abs(solution[3]) < 1e-10) {
-            return [0, 0, 0]; // Point at infinity
+        if (Math.abs(x[3]) < 1e-10) {
+            console.warn('Point at infinity detected');
+            return [0, 0, 0]; // Point at infinity or degenerate case
         }
         
         return [
-            solution[0] / solution[3],
-            solution[1] / solution[3],
-            solution[2] / solution[3]
+            x[0] / x[3],
+            x[1] / x[3],
+            x[2] / x[3]
         ];
     }
 
-    // Simplified homogeneous system solver
-    solveHomogeneous(matrix) {
-        // This is a very simplified approach
-        // For production, use a proper SVD implementation
-        const n = matrix.length;
-        let minCol = 0;
-        let minSum = Infinity;
+    // Solve linear system using Gauss-Seidel iteration
+    solveLinearSystem(A, b) {
+        const n = A.length;
+        let x = [...b]; // Initial guess
         
-        // Find column with minimum sum of squares (heuristic)
-        for (let j = 0; j < n; j++) {
-            let sum = 0;
+        for (let iter = 0; iter < 20; iter++) {
             for (let i = 0; i < n; i++) {
-                sum += matrix[i][j] * matrix[i][j];
-            }
-            if (sum < minSum) {
-                minSum = sum;
-                minCol = j;
+                let sum = 0;
+                for (let j = 0; j < n; j++) {
+                    if (i !== j) {
+                        sum += A[i][j] * x[j];
+                    }
+                }
+                
+                if (Math.abs(A[i][i]) > 1e-10) {
+                    x[i] = (b[i] - sum) / A[i][i];
+                }
             }
         }
         
-        const solution = new Array(n).fill(0);
-        solution[minCol] = 1;
-        
-        return solution;
+        return x;
     }
 
     // Triangulate all BlazePose keypoints
     triangulateBlazePoseKeypoints(keypoints1, cameraKey1, keypoints2, cameraKey2) {
-        if (keypoints1.length !== keypoints2.length) {
-            throw new Error('Keypoint arrays must have the same length');
+        if (keypoints1?.length !== keypoints2?.length) {
+            console.error('Keypoint arrays must have the same length');
+            return [];
         }
         
         const triangulated3D = [];
@@ -246,19 +391,31 @@ class StereoTriangulator {
             if (kp1.visibility > confidenceThreshold && kp2.visibility > confidenceThreshold) {
                 try {
                     const point3D = this.triangulatePoint(
-                        [kp1.x, kp1.y],
+                        kp1, // Pass full keypoint object with x, y properties
                         cameraKey1,
-                        [kp2.x, kp2.y],
+                        kp2, // Pass full keypoint object with x, y properties
                         cameraKey2
                     );
 
-                    triangulated3D.push({
-                        x: point3D[0],
-                        y: point3D[1],
-                        z: point3D[2],
-                        visibility: Math.min(kp1.visibility, kp2.visibility),
-                        keypointIndex: i
-                    });
+                    // Validate the result
+                    if (isFinite(point3D[0]) && isFinite(point3D[1]) && isFinite(point3D[2])) {
+                        triangulated3D.push({
+                            x: point3D[0],
+                            y: point3D[1],
+                            z: point3D[2],
+                            visibility: Math.min(kp1.visibility, kp2.visibility),
+                            keypointIndex: i
+                        });
+                    } else {
+                        console.warn(`Invalid 3D point for keypoint ${i}:`, point3D);
+                        triangulated3D.push({
+                            x: 0,
+                            y: 0,
+                            z: 0,
+                            visibility: 0,
+                            keypointIndex: i
+                        });
+                    }
                 } catch (error) {
                     console.warn(`Failed to triangulate keypoint ${i}:`, error);
                     triangulated3D.push({
@@ -311,34 +468,4 @@ class StereoTriangulator {
     transposeMatrix(matrix) {
         return matrix[0].map((_, colIndex) => matrix.map(row => row[colIndex]));
     }
-}
-
-// Usage example
-function createTriangulator(intrinsicsData, extrinsicsData) {
-    return new StereoTriangulator(intrinsicsData, extrinsicsData);
-}
-
-// Example usage with BlazePose keypoints
-function triangulateBlazePoseFromTwoCameras(
-    triangulator,
-    keypoints1, // Array of {x, y, visibility} from camera 1
-    keypoints2, // Array of {x, y, visibility} from camera 2
-    cameraKey1 = 2, // Camera key from your data
-    cameraKey2 = 4  // Camera key from your data
-) {
-    return triangulator.triangulateBlazePoseKeypoints(
-        keypoints1,
-        cameraKey1,
-        keypoints2,
-        cameraKey2
-    );
-}
-
-// Export for use
-if (typeof module !== 'undefined' && module.exports) {
-    module.exports = {
-        StereoTriangulator,
-        createTriangulator,
-        triangulateBlazePoseFromTwoCameras
-    };
 }
