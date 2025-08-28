@@ -89,3 +89,8 @@ progress:
 todo 02:
 - Manually calculate the camera intrinsics and extrinsics for both webcams (take multiple images from each and use openMVG)
 - Use this hardcoded data and test if the triangulation will work correctly before proceeding
+
+progress 02:
+- We manually extracted camera intrinsics and extrinsics using openMVG (three images from each camera)
+- We setup the triangulator in our screen.js file to render a green man with the results it gets back, however he is not accurate in 3D at all
+- We are brainstorming this again to try and figure out what would the next logical step be
