@@ -21,8 +21,8 @@ The standard `SfM_SequentialPipeline.py` script has limitations and doesn't supp
 **Command**:
 ```bash
 ~/schade/openMVG_Build/Linux-x86_64-RELEASE/openMVG_main_SfMInit_ImageListing \
-  -i ~/schade/openMVG_Build/image_test_01 \
-  -o ~/schade/openMVG_Build/output_test_01/matches \
+  -i ~/schade/openMVG_Build/image_test_02 \
+  -o ~/schade/openMVG_Build/output_test_02/matches \
   -d ~/schade/openMVG/src/software/SfM/../../openMVG/exif/sensor_width_database/sensor_width_camera_database.txt \
   -f 800
 ```
@@ -50,8 +50,8 @@ usable #Intrinsic(s) listed in sfm_data: 1
 **Command**:
 ```bash
 ~/schade/openMVG_Build/Linux-x86_64-RELEASE/openMVG_main_ComputeFeatures \
-  -i ~/schade/openMVG_Build/output_test_01/matches/sfm_data.json \
-  -o ~/schade/openMVG_Build/output_test_01/matches \
+  -i ~/schade/openMVG_Build/output_test_02/matches/sfm_data.json \
+  -o ~/schade/openMVG_Build/output_test_02/matches \
   -m AKAZE_FLOAT
 ```
 
@@ -78,8 +78,8 @@ usable #Intrinsic(s) listed in sfm_data: 1
 **Command**:
 ```bash
 ~/schade/openMVG_Build/Linux-x86_64-RELEASE/openMVG_main_PairGenerator \
-  -i ~/schade/openMVG_Build/output_test_01/matches/sfm_data.json \
-  -o ~/schade/openMVG_Build/output_test_01/matches/pairs.bin
+  -i ~/schade/openMVG_Build/output_test_02/matches/sfm_data.json \
+  -o ~/schade/openMVG_Build/output_test_02/matches/pairs.bin
 ```
 
 **Parameters**:
@@ -98,9 +98,9 @@ usable #Intrinsic(s) listed in sfm_data: 1
 **Command**:
 ```bash
 ~/schade/openMVG_Build/Linux-x86_64-RELEASE/openMVG_main_ComputeMatches \
-  -i ~/schade/openMVG_Build/output_test_01/matches/sfm_data.json \
-  -o ~/schade/openMVG_Build/output_test_01/matches/matches.putative.bin \
-  -p ~/schade/openMVG_Build/output_test_01/matches/pairs.bin
+  -i ~/schade/openMVG_Build/output_test_02/matches/sfm_data.json \
+  -o ~/schade/openMVG_Build/output_test_02/matches/matches.putative.bin \
+  -p ~/schade/openMVG_Build/output_test_02/matches/pairs.bin
 ```
 
 **Parameters**:
@@ -129,9 +129,9 @@ Graph statistics:
 **Command**:
 ```bash
 ~/schade/openMVG_Build/Linux-x86_64-RELEASE/openMVG_main_GeometricFilter \
-  -i ~/schade/openMVG_Build/output_test_01/matches/sfm_data.json \
-  -m ~/schade/openMVG_Build/output_test_01/matches/matches.putative.bin \
-  -o ~/schade/openMVG_Build/output_test_01/matches/matches.f.bin
+  -i ~/schade/openMVG_Build/output_test_02/matches/sfm_data.json \
+  -m ~/schade/openMVG_Build/output_test_02/matches/matches.putative.bin \
+  -o ~/schade/openMVG_Build/output_test_02/matches/matches.f.bin
 ```
 
 **Parameters**:
@@ -158,12 +158,12 @@ Graph statistics:
 
 **Command**:
 ```bash
-mkdir -p ~/schade/openMVG_Build/output_test_01/reconstruction_sequential
+mkdir -p ~/schade/openMVG_Build/output_test_02/reconstruction_sequential
 
 ~/schade/openMVG_Build/Linux-x86_64-RELEASE/openMVG_main_SfM \
-  -i ~/schade/openMVG_Build/output_test_01/matches/sfm_data.json \
-  -m ~/schade/openMVG_Build/output_test_01/matches \
-  -o ~/schade/openMVG_Build/output_test_01/reconstruction_sequential/sfm_data.bin
+  -i ~/schade/openMVG_Build/output_test_02/matches/sfm_data.json \
+  -m ~/schade/openMVG_Build/output_test_02/matches \
+  -o ~/schade/openMVG_Build/output_test_02/reconstruction_sequential/sfm_data.bin
 ```
 
 **Parameters**:
@@ -201,8 +201,8 @@ Bundle Adjustment statistics:
 **Command**:
 ```bash
 ~/schade/openMVG_Build/Linux-x86_64-RELEASE/openMVG_main_ComputeSfM_DataColor \
-  -i ~/schade/openMVG_Build/output_test_01/reconstruction_sequential/sfm_data.bin/sfm_data.bin \
-  -o ~/schade/openMVG_Build/output_test_01/reconstruction_sequential/colorized.ply
+  -i ~/schade/openMVG_Build/output_test_02/reconstruction_sequential/sfm_data.bin/sfm_data.bin \
+  -o ~/schade/openMVG_Build/output_test_02/reconstruction_sequential/colorized.ply
 ```
 
 **Parameters**:
@@ -218,8 +218,8 @@ Bundle Adjustment statistics:
 
 ```bash
 ~/schade/openMVG_Build/Linux-x86_64-RELEASE/openMVG_main_ConvertSfM_DataFormat -V -I -E \
--i /home/knight/schade/openMVG_Build/output_test_01/reconstruction_sequential/sfm_data.bin/sfm_data.bin \
--o /home/knight/schade/openMVG_Build/output_test_01/reconstruction_sequential/sfm_data.bin/sfm_data_out.json
+-i /home/knight/schade/openMVG_Build/output_test_02/reconstruction_sequential/sfm_data.bin/sfm_data.bin \
+-o /home/knight/schade/openMVG_Build/output_test_02/reconstruction_sequential/sfm_data.bin/sfm_data_out.json
 ```
 
 ## Results

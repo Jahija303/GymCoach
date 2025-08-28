@@ -68,6 +68,14 @@ function startPoseCapture(video, camera, index) {
                 pose.drawPoseLandmarks(results, index);
                 three.drawStickman3D(results, camera.color, index);
 
+                // if(Object.keys(cameraKeypoints).length >= 2) {
+                //     const keys = Object.keys(cameraKeypoints);
+                //     const keypoints1 = cameraKeypoints[keys[0]];
+                //     const keypoints2 = cameraKeypoints[keys[1]];
+
+                //     const triangulated3D = triangulator.triangulateBlazePoseKeypoints(keypoints1, 0, keypoints2, 1);
+                // }
+
                 const tableId = camera.label
                 cameraHelper.updateTableData(tableId, results);
             } catch (error) {
