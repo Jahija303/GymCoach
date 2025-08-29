@@ -4,7 +4,8 @@ import { LANDMARK } from '../util/landmark_reader.js';
 const VALID_HIP_ANGLES_SIDE = {
     standing: {
         start: 165,
-        end: 180       // Nearly straight hip (slight forward lean is normal)
+        end: 180,       // Nearly straight hip (slight forward lean is normal)
+        tip: "M"
     },
     quarterSquat: {
         start: 140,
