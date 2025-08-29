@@ -1,11 +1,14 @@
 import { Camera } from './util/camera.js';
 import { Three } from './util/three.js';
 import { Pose } from './util/pose.js';
+import { Squat } from './exercise/squat.js';
 
 let three;
 let cameraHelper;
 let pose;
 let intervalIDs = {};
+let frameCount = 0;
+let currentExercise = null;
 const FPS = 30;
 
 // Capture the camera stream and start pose detection
@@ -55,6 +58,7 @@ function captureCamera(video, specifiedCamera, index) {
 // Capture the pose for the selected camera stream
 // Render everything on the screen (2d video streams, 3d render, keypoint data)
 function startPoseCapture(video, camera, index) {
+    frameCount++;
     console.log(`Starting pose capture for video: ${video.id}`);
     return setInterval(async () => {
         if (video.srcObject && video.videoWidth > 0) {
@@ -66,8 +70,13 @@ function startPoseCapture(video, camera, index) {
                 pose.drawPoseLandmarks(results, index);
                 three.drawStickman3D(results?.landmarks[0], camera.color, index);
 
-                const tableId = camera.label
-                cameraHelper.updateTableData(tableId, results);
+                // if (frameCount % 9 === 0 && currentExercise) {
+                //   currentExercise.validate(results);
+                // }
+
+                frameCount++;
+                // const tableId = camera.label
+                // cameraHelper.updateTableData(tableId, results);
             } catch (error) {
                 console.error('Error during pose detection:', error);
             }
@@ -92,4 +101,20 @@ document.addEventListener('DOMContentLoaded', async function() {
         const localVideo = document.getElementById(`localVideo${index}`);
         captureCamera(localVideo, device, index);
     });
+});
+
+// Add an event listener for exercise selection
+document.getElementById('exercise-select').addEventListener('change', (event) => {
+    switch (event.target.value) {
+        case 'squat':
+            console.log('Squat selected');
+            currentExercise = new Squat();
+            break;
+        case 'pushup':
+            console.log('Pushup selected');
+            break;
+        case 'plank':
+            console.log('Plank selected');
+            break;
+    }
 });
