@@ -94,3 +94,12 @@ progress 02:
 - We manually extracted camera intrinsics and extrinsics using openMVG (three images from each camera)
 - We setup the triangulator in our screen.js file to render a green man with the results it gets back, however he is not accurate in 3D at all
 - We are brainstorming this again to try and figure out what would the next logical step be
+
+# 29.08.2025
+
+branch: 237-validate-excersize-v2
+
+todo:
+- Create a new box with an empty 2D graph using three.js
+- When user selects an exercise, plot this graph with the user hip and leg angles (side squat only)
+- Plot the valid squat values onto the graph so the user has a reference, think about how you will handle the time axis, loop every x seconds or something better
