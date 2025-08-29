@@ -1,16 +1,12 @@
 import { Camera } from './util/camera.js';
 import { Three } from './util/three.js';
 import { Pose } from './util/pose.js';
-import { StereoTriangulator } from './util/triangulator.js';
 
 let three;
 let cameraHelper;
 let pose;
 let intervalIDs = {};
-let cameraKeypoints = {};
 const FPS = 30;
-
-const triangulator = new StereoTriangulator();
 
 // Capture the camera stream and start pose detection
 function captureCamera(video, specifiedCamera, index) {
@@ -67,18 +63,8 @@ function startPoseCapture(video, camera, index) {
                 let results = null;
 
                 results = await pose.poseLandmarkers[index].detectForVideo(video, startTimeMs);
-                cameraKeypoints[camera.deviceId] = results?.landmarks[0];
                 pose.drawPoseLandmarks(results, index);
                 three.drawStickman3D(results?.landmarks[0], camera.color, index);
-
-                if(Object.keys(cameraKeypoints).length >= 2) {
-                    const keys = Object.keys(cameraKeypoints);
-                    const keypoints1 = cameraKeypoints[keys[0]];
-                    const keypoints2 = cameraKeypoints[keys[1]];
-
-                    const triangulated3D = triangulator.triangulateBlazePoseKeypoints(keypoints1, keys[0], keypoints2, keys[1]);
-                    three.drawStickman3D(triangulated3D, 0x006400, 3);
-                }
 
                 const tableId = camera.label
                 cameraHelper.updateTableData(tableId, results);

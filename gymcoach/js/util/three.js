@@ -92,7 +92,6 @@ export class Three {
     // Draw the 3D stickman representation
     drawStickman3D(landmarks, color, cameraId) {
         this.clearPoseLines(cameraId);
-        // console.log('SITCKMAN PASSED:', cameraId, ' landmarks are ', landmarks);
         POSE_CONNECTIONS.forEach(([i, j]) => {
             const landmark1 = landmarks[i];
             const landmark2 = landmarks[j];
