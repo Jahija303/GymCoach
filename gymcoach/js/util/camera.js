@@ -19,7 +19,7 @@ export class Camera {
         ]
         this.devices = await this.getCameraDevices();
         this.initializeCameraWrappers();
-        this.initializeTables(this.devices.map(device => device.label));
+        // this.initializeTables(this.devices.map(device => device.label));
     }
 
     // Create camera wrapper html elements and assing camera IDs to the video elements

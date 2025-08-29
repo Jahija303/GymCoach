@@ -19,6 +19,18 @@ h1 {
   font-size: 3em;
 }
 
+.header {
+  margin: 10px;
+}
+
+#exercise-select {
+  width: 150px;
+  padding: 4px;
+  border: 1px solid #ccc;
+  background-color: white;
+  font-size: 14px;
+}
+
 #video-container {
   overflow: hidden;
   display: grid;

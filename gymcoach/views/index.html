@@ -13,19 +13,21 @@
   </script>
 </head>
 <body>
+  <div class="header">
+    <select id="exercise-select">
+      <option value="">Select exercise</option>
+      <option value="plank">Plank</option>
+      <option value="pushup">Push Up</option>
+      <option value="squat">Squat</option>
+    </select>
+  </div>
   <div id="video-container">
     <div class="wrapper">
       <label>3D Model</label>
       <div id="three" class="three">
       </div>
     </div>
-    <div class="wrapper">
-      <label>Model Data</label>
-      <div id="data-section">
-      </div>
-    </div>
   </div>
-
   <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.8.1/socket.io.js"></script>
   <script type="module" src="/js/screen.js"></script>
 </body>
