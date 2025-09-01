@@ -2,9 +2,7 @@ import { LANDMARK, LandmarkReader } from "../util/landmark_reader.js";
 
 export class Exercise {
     constructor() {
-        this.exerciseStatus = document.getElementById('exercise-status');
         this.reader = new LandmarkReader();
-        this.poseData = document.getElementById('pose-data');
         this.repCounterElement = document.querySelector("#rep-count span");
         this.bodyDimensions = null;
         this.bodyScaleRef = null;

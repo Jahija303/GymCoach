@@ -314,10 +314,6 @@ export class Squat extends Exercise {
         // Update the graph with current angles
         this.updateAngleGraph(currentAngles);
 
-        // Display angles in the exercise status
-        this.exerciseStatus.textContent = `L Leg: ${currentAngles.leftLeg.toFixed(1)}° | R Leg: ${currentAngles.rightLeg.toFixed(1)}° | L Hip: ${currentAngles.leftHip.toFixed(1)}° | R Hip: ${currentAngles.rightHip.toFixed(1)}°`;
-        this.exerciseStatus.className = "status exercise-status";
-
         // Keep the existing rotation detection for different exercise modes
         const rotation = Math.abs(this.calculate3DBodyRotation().rotation);
         if (rotation >= 130 && rotation <= 185) {
@@ -426,7 +422,6 @@ export class Squat extends Exercise {
         const validPose = joints.every(joint => joint && joint.visibility > minConfidence);
         
         if (!validPose) {
-            this.poseData.textContent = "Unable to analyze - adjust camera position";
             return;
         }
 
@@ -483,9 +478,6 @@ export class Squat extends Exercise {
             overallStatus = `Form needs work: ${issues.slice(0, 2).join(", ")}`;
             statusClass = "error";
         }
-
-        // DEBUG
-        this.poseData.textContent = `L Knee Dev: ${leftKneeDeviation.toFixed(3)} | R Knee Dev: ${rightKneeDeviation.toFixed(3)}`;
 
         // Display info in the UI
         this.exerciseStatus.className = `status exercise-status ${statusClass}`;
