@@ -2,22 +2,6 @@ import { Exercise } from './exercise.js';
 import { LANDMARK } from '../util/landmark_reader.js';
 import { CANVAS_HEIGHT, CANVAS_WIDTH } from '../util/pose.js';
 
-// const VALID_HIP_ANGLES_SIDE = {
-//     standing: [165, 180],       // Nearly straight hip (slight forward lean is normal)
-//     quarterSquat: [140, 165],   // Slight hip hinge, minimal flexion
-//     halfSquat: [110, 140],      // Moderate hip flexion, thighs approaching parallel
-//     deepSquat: [85, 110],       // Significant hip flexion, below parallel
-//     bottomPosition: [70, 85]    // Deep squat bottom, maximum hip flexion
-// };
-
-// const VALID_LEG_ANGLES_SIDE = {
-//     standing: [170, 180],       // Nearly straight legs
-//     quarterSquat: [145, 170],   // Slight knee bend
-//     halfSquat: [120, 145],      // Moderate knee flexion, thighs parallel to ground
-//     deepSquat: [90, 120],       // Significant knee bend, below parallel
-//     bottomPosition: [70, 90]    // Maximum knee flexion at bottom
-// };
-
 const PROPER_SQUAT_FORM_HIP_ANGLES_IN_TIME = [
     { time: 0.0, angle: 178 },    // Standing position (165-180 range)
     { time: 0.2, angle: 172 },    // Start of descent
@@ -67,6 +51,27 @@ export class Squat extends Exercise {
             hip: []
         };
         this.startTime = Date.now();
+        this.movementStartTime = null;
+        this.movementEndTime = null;
+        this.isMovementActive = false;
+        this.baselineAngles = { hip: null, leg: null };
+        this.movementAngleHistory = {
+            leg: [],
+            hip: []
+        };
+        this.lastMovementDuration = null;
+        this.tempoWarningShown = false;
+
+        this.STANDING_HIP_RANGE = [165, 180];
+        this.STANDING_LEG_RANGE = [165, 180];
+        this.MOVEMENT_START_THRESHOLD = 15; // degrees below standing position
+        this.MOVEMENT_END_THRESHOLD = 15;    // degrees from baseline to consider "returned"
+        this.IDEAL_MOVEMENT_DURATION = 3000; // 3 seconds in milliseconds
+
+        this.movementStatusElement = document.getElementById('movement-status');
+        this.formScoreElement = document.getElementById('form-score');
+        this.tempoStatusElement = document.getElementById('tempo-status');
+        
         this.initializeAngleGraph();
     }
 
@@ -144,7 +149,6 @@ export class Squat extends Exercise {
     updateAngleGraph(angles) {
         const currentTime = Date.now() - this.startTime;
 
-        // Determine which side is more visible/confident
         const leftSide = {
             leg: angles.leftLeg,
             hip: angles.leftHip,
@@ -157,13 +161,24 @@ export class Squat extends Exercise {
             confidence: this.getRightSideConfidence()
         };
 
-        // Use the side with higher confidence
         const selectedSide = leftSide.confidence >= rightSide.confidence ? leftSide : rightSide;
-        
-        // Add new data points using the selected side
+        const currentAngles = {
+            hip: selectedSide.hip,
+            leg: selectedSide.leg
+        };
+
+        this.detectMovementStart(currentAngles);
+        this.detectMovementEnd(currentAngles);
+
         this.angleHistory.leg.push({ time: currentTime, angle: selectedSide.leg });
         this.angleHistory.hip.push({ time: currentTime, angle: selectedSide.hip });
-        
+
+        // If movement is active, also track in movement-specific history
+        if (this.isMovementActive) {
+            this.movementAngleHistory.leg.push({ time: currentTime, angle: selectedSide.leg });
+            this.movementAngleHistory.hip.push({ time: currentTime, angle: selectedSide.hip });
+        }
+
         // Remove old data points (keep last 3 seconds)
         Object.keys(this.angleHistory).forEach(key => {
             this.angleHistory[key] = this.angleHistory[key].filter(
@@ -190,6 +205,254 @@ export class Squat extends Exercise {
         const rightAnkle = this.reader.getLandmark(LANDMARK.RIGHT_ANKLE);
         
         return (rightShoulder?.visibility + rightHip?.visibility + rightKnee?.visibility + rightAnkle?.visibility) / 4 || 0;
+    }
+
+    detectMovementStart(currentAngles) {
+        if (this.isMovementActive) return false;
+
+        // Set baseline angles if not set (first time or after movement end)
+        if (this.baselineAngles.hip === null || this.baselineAngles.leg === null) {
+            if (this.isInStandingPosition(currentAngles)) {
+                this.baselineAngles.hip = currentAngles.hip;
+                this.baselineAngles.leg = currentAngles.leg;
+            }
+            return false;
+        }
+
+        // Check if angles have dropped significantly from baseline (movement started)
+        const hipDrop = this.baselineAngles.hip - currentAngles.hip;
+        const legDrop = this.baselineAngles.leg - currentAngles.leg;
+
+        if (hipDrop >= this.MOVEMENT_START_THRESHOLD && legDrop >= this.MOVEMENT_START_THRESHOLD) {
+            this.movementStartTime = Date.now();
+            this.isMovementActive = true;
+            this.movementAngleHistory = { leg: [], hip: [] };
+            this.tempoWarningShown = false;
+
+            if (this.movementStatusElement) {
+                this.movementStatusElement.textContent = "Active";
+                this.movementStatusElement.className = "status-value active";
+            }
+            
+            return true;
+        }
+
+        return false;
+    }
+
+    detectMovementEnd(currentAngles) {
+        if (!this.isMovementActive) return false;
+
+        // Check if user has returned close to baseline angles
+        const hipDiff = Math.abs(this.baselineAngles.hip - currentAngles.hip);
+        const legDiff = Math.abs(this.baselineAngles.leg - currentAngles.leg);
+
+        if (hipDiff <= this.MOVEMENT_END_THRESHOLD && legDiff <= this.MOVEMENT_END_THRESHOLD) {
+            this.movementEndTime = Date.now();
+            this.lastMovementDuration = this.movementEndTime - this.movementStartTime;
+            this.isMovementActive = false;
+            
+            if (this.movementStatusElement) {
+                this.movementStatusElement.textContent = "Complete";
+                this.movementStatusElement.className = "status-value good";
+            }
+            
+            this.validateMovementTempo();
+            this.analyzeMovementForm();
+            
+            this.baselineAngles.hip = null;
+            this.baselineAngles.leg = null;
+
+            setTimeout(() => {
+                if (this.movementStatusElement) {
+                    this.movementStatusElement.textContent = "Ready";
+                    this.movementStatusElement.className = "status-value";
+                }
+            }, 2000);
+            
+            return true;
+        }
+
+        return false;
+    }
+
+    isInStandingPosition(angles) {
+        return (angles.hip >= this.STANDING_HIP_RANGE[0] && angles.hip <= this.STANDING_HIP_RANGE[1] &&
+                angles.leg >= this.STANDING_LEG_RANGE[0] && angles.leg <= this.STANDING_LEG_RANGE[1]);
+    }
+
+    validateMovementTempo() {
+        const seconds = (this.lastMovementDuration / 1000).toFixed(1);
+        
+        if (this.tempoStatusElement) {
+            if (this.lastMovementDuration > this.IDEAL_MOVEMENT_DURATION) {
+                this.tempoStatusElement.textContent = `${seconds}s (too slow)`;
+                this.tempoStatusElement.className = "status-value warning";
+            } else if (this.lastMovementDuration < this.IDEAL_MOVEMENT_DURATION * 0.8) {
+                this.tempoStatusElement.textContent = `${seconds}s (too fast)`;
+                this.tempoStatusElement.className = "status-value warning";
+            } else {
+                this.tempoStatusElement.textContent = `${seconds}s (good)`;
+                this.tempoStatusElement.className = "status-value good";
+            }
+        }
+    }
+
+    analyzeMovementForm() {
+        if (this.movementAngleHistory.hip.length < 5 || this.movementAngleHistory.leg.length < 5) {
+            if (this.formScoreElement) {
+                this.formScoreElement.textContent = "Insufficient data";
+                this.formScoreElement.className = "status-value warning";
+            }
+            return;
+        }
+
+        const scaleFactor = this.lastMovementDuration / this.IDEAL_MOVEMENT_DURATION;
+        this.compareWithTemplate(scaleFactor);
+    }
+
+    compareWithTemplate(scaleFactor) {
+        const scaledHipTemplate = PROPER_SQUAT_FORM_HIP_ANGLES_IN_TIME.map(point => ({
+            time: point.time * scaleFactor * 1000, // Convert to milliseconds
+            angle: point.angle
+        }));
+
+        const scaledLegTemplate = PROPER_SQUAT_FORM_KNEE_ANGLES_IN_TIME.map(point => ({
+            time: point.time * scaleFactor * 1000,
+            angle: point.angle
+        }));
+
+        // Compare user movement with scaled template
+        let hipFormScore = 0;
+        let legFormScore = 0;
+        let totalComparisons = 0;
+
+        const sampleInterval = this.lastMovementDuration / 10; // 10 sample points
+        
+        for (let i = 0; i <= 10; i++) {
+            const sampleTime = i * sampleInterval;
+            const userHipAngle = this.interpolateAngleAtTime(this.movementAngleHistory.hip, sampleTime);
+            const userLegAngle = this.interpolateAngleAtTime(this.movementAngleHistory.leg, sampleTime);
+            
+            const templateHipAngle = this.interpolateTemplateAngleAtTime(scaledHipTemplate, sampleTime);
+            const templateLegAngle = this.interpolateTemplateAngleAtTime(scaledLegTemplate, sampleTime);
+
+            if (userHipAngle !== null && templateHipAngle !== null) {
+                const hipDiff = Math.abs(userHipAngle - templateHipAngle);
+                hipFormScore += Math.max(0, 20 - hipDiff); // Max 20 points per sample, decreasing with difference
+                totalComparisons++;
+            }
+
+            if (userLegAngle !== null && templateLegAngle !== null) {
+                const legDiff = Math.abs(userLegAngle - templateLegAngle);
+                legFormScore += Math.max(0, 20 - legDiff);
+            }
+        }
+
+        const avgHipScore = totalComparisons > 0 ? hipFormScore / totalComparisons : 0;
+        const avgLegScore = totalComparisons > 0 ? legFormScore / totalComparisons : 0;
+        const overallScore = (avgHipScore + avgLegScore) / 2;
+
+        if (this.formScoreElement) {
+            const scorePercentage = Math.round((overallScore / 20) * 100);
+            this.formScoreElement.textContent = `${scorePercentage}%`;
+            
+            if (overallScore >= 15) {
+                this.formScoreElement.className = "status-value good";
+            } else if (overallScore >= 10) {
+                this.formScoreElement.className = "status-value warning";
+            } else {
+                this.formScoreElement.className = "status-value error";
+            }
+        }
+    }
+
+    interpolateAngleAtTime(angleHistory, targetTime) {
+        if (angleHistory.length === 0) return null;
+
+        // Find the two points that bracket the target time
+        let before = null, after = null;
+        
+        for (let i = 0; i < angleHistory.length; i++) {
+            const point = angleHistory[i];
+            const relativeTime = point.time - this.movementStartTime;
+            
+            if (relativeTime <= targetTime) {
+                before = { ...point, relativeTime };
+            } else {
+                after = { ...point, relativeTime };
+                break;
+            }
+        }
+
+        if (!before) return after ? after.angle : null;
+        if (!after) return before.angle;
+
+        // Linear interpolation
+        const timeDiff = after.relativeTime - before.relativeTime;
+        const angleDiff = after.angle - before.angle;
+        const timeRatio = (targetTime - before.relativeTime) / timeDiff;
+        
+        return before.angle + (angleDiff * timeRatio);
+    }
+
+    interpolateTemplateAngleAtTime(template, targetTime) {
+        // Find the two template points that bracket the target time
+        let before = null, after = null;
+        
+        for (let i = 0; i < template.length; i++) {
+            if (template[i].time <= targetTime) {
+                before = template[i];
+            } else {
+                after = template[i];
+                break;
+            }
+        }
+
+        if (!before) return after ? after.angle : null;
+        if (!after) return before.angle;
+
+        // Linear interpolation
+        const timeDiff = after.time - before.time;
+        const angleDiff = after.angle - before.angle;
+        const timeRatio = (targetTime - before.time) / timeDiff;
+        
+        return before.angle + (angleDiff * timeRatio);
+    }
+
+    resetMovementTracking() {
+        this.movementStartTime = null;
+        this.movementEndTime = null;
+        this.isMovementActive = false;
+        this.baselineAngles = { hip: null, leg: null };
+        this.movementAngleHistory = { leg: [], hip: [] };
+        this.lastMovementDuration = null;
+        this.tempoWarningShown = false;
+        
+        // Reset UI elements
+        if (this.movementStatusElement) {
+            this.movementStatusElement.textContent = "Ready";
+            this.movementStatusElement.className = "status-value";
+        }
+        if (this.formScoreElement) {
+            this.formScoreElement.textContent = "-";
+            this.formScoreElement.className = "status-value";
+        }
+        if (this.tempoStatusElement) {
+            this.tempoStatusElement.textContent = "-";
+            this.tempoStatusElement.className = "status-value";
+        }
+    }
+
+    getMovementStatus() {
+        return {
+            isActive: this.isMovementActive,
+            startTime: this.movementStartTime,
+            endTime: this.movementEndTime,
+            duration: this.lastMovementDuration,
+            baseline: this.baselineAngles,
+            hasData: this.movementAngleHistory.hip.length > 0
+        };
     }
 
     drawGraph() {
@@ -283,11 +546,6 @@ export class Squat extends Exercise {
             return;
         }
 
-        // if (this.bodyDimensions == null){
-        //     super.calibrateBodyDimensions();
-        //     return;
-        // }
-
         const leftShoulder = this.reader.getLandmark(LANDMARK.LEFT_SHOULDER);
         const leftHip = this.reader.getLandmark(LANDMARK.LEFT_HIP);
         const leftKnee = this.reader.getLandmark(LANDMARK.LEFT_KNEE);
@@ -302,8 +560,6 @@ export class Squat extends Exercise {
         const rightLegAngle = this.calculateAngle2D(rightHip, rightKnee, rightAnkle);
         const leftHipAngle = this.calculateAngle2D(leftShoulder, leftHip, leftKnee);
         const rightHipAngle = this.calculateAngle2D(rightShoulder, rightHip, rightKnee);
-
-        // Output current joint angles
         const currentAngles = {
             leftLeg: leftLegAngle || 0,
             rightLeg: rightLegAngle || 0,
@@ -311,176 +567,6 @@ export class Squat extends Exercise {
             rightHip: rightHipAngle || 0
         };
 
-        // Update the graph with current angles
         this.updateAngleGraph(currentAngles);
-
-        // Keep the existing rotation detection for different exercise modes
-        const rotation = Math.abs(this.calculate3DBodyRotation().rotation);
-        if (rotation >= 130 && rotation <= 185) {
-            this.validateFrontSquatForm(leftHip, leftKnee, leftAnkle, rightHip, rightKnee, rightAnkle);
-        } else if (rotation >= 75 && rotation <= 110) {
-            this.validateSideSquatForm(leftLegAngle, leftHipAngle, rightLegAngle, rightHipAngle);
-        }
-    }
-
-    validateSideSquatForm(leftLegAngle, leftHipAngle, rightLegAngle, rightHipAngle) {
-        if (leftLegAngle && leftHipAngle) {
-            this.sideSquatStatus(leftLegAngle, leftHipAngle);
-        } else if (rightLegAngle && rightHipAngle) {
-            this.sideSquatStatus(rightLegAngle, rightHipAngle);
-        } else {
-            // console.log("Insufficient data to validate side squat form.");
-            return;
-        }
-
-        const leftKnee = this.reader.getLandmark(LANDMARK.LEFT_KNEE);
-        const leftAnkle = this.reader.getLandmark(LANDMARK.LEFT_ANKLE);
-        const rightKnee = this.reader.getLandmark(LANDMARK.RIGHT_KNEE);
-        const rightAnkle = this.reader.getLandmark(LANDMARK.RIGHT_ANKLE);
-
-        const minConfidence = 0.6;
-        if ((leftKnee.visibility < minConfidence || leftAnkle.visibility < minConfidence) && (rightKnee.visibility < minConfidence || rightAnkle.visibility < minConfidence)) {
-            return;
-        }
-
-        const issues = [];
-        const forwardThreshold = 0.07;
-        
-        const leftKneeForward = Math.abs(leftKnee.x - leftAnkle.x);
-        const rightKneeForward = Math.abs(rightKnee.x - rightAnkle.x);
-        
-        if (leftKneeForward > forwardThreshold) {
-            issues.push("Left knee too far forward");
-        }
-        
-        if (rightKneeForward > forwardThreshold) {
-            issues.push("Right knee too far forward");
-        }
-
-        if (issues.length > 0) {
-            const updatedStatus = issues.length === 1 ? issues[0] : "Knees too far forward";
-            
-            this.exerciseStatus.textContent = updatedStatus;
-            this.exerciseStatus.className = "status exercise-status warning";
-        }
-    }
-
-    determineAngleState(angle, validAngles) {
-        for (const [stateName, range] of Object.entries(validAngles)) {
-            if (angle >= range[0] && angle <= range[1]) {
-                return stateName;
-            }
-        }
-        return 'unknown';
-    }
-
-    sideSquatStatus(legAngle, hipAngle) {
-        const legState = this.determineAngleState(legAngle, VALID_LEG_ANGLES_SIDE);
-        const hipState = this.determineAngleState(hipAngle, VALID_HIP_ANGLES_SIDE);
-
-        const newSquatState = legState === hipState ? legState : 'transition';
-        this.currentSquatState = newSquatState;
-        if (typeof this.exerciseStatus !== 'undefined') {
-            this.exerciseStatus.className = `status exercise-status ${this.currentSquatState}`;
-            this.exerciseStatus.textContent = this.currentSquatState;
-        }
-
-        if (this.currentSquatState == "standing" || this.currentSquatState == "bottomPosition") {
-            // console.log("standing or bottomPosition");
-            if (this.squatPhases.length > 1) {
-                // console.log("squat phases length > 1")
-                if(this.squatPhases[0] === "standing" && this.squatPhases[1] === "bottomPosition" && this.currentSquatState == this.squatPhases[0]) {
-                    // console.log("Rep completed");
-                    this.repCounter+=1;
-                    this.repCounterElement.textContent = this.repCounter;
-                }
-            }
-            if (this.squatPhases[this.squatPhases.length - 1] !== this.currentSquatState) {
-                this.squatPhases.push(this.currentSquatState);
-            }
-
-            // console.log("squat phases" + this.squatPhases);
-            if (this.squatPhases.length > 2) {
-                this.squatPhases.shift(); // Keep only the last 2 states
-                // console.log("Keep only last two " + this.squatPhases);
-            }
-        }
-    }
-
-    validateFrontSquatForm(leftHip, leftKnee, leftAnkle, rightHip, rightKnee, rightAnkle) {
-        const leftLegAngle = this.calculateAngle2D(leftHip, leftKnee, leftAnkle);
-        const rightLegAngle = this.calculateAngle2D(rightHip, rightKnee, rightAnkle);
-
-        if (leftLegAngle > 165 && rightLegAngle > 165) {
-            this.exerciseStatus.textContent = "Standing";
-            this.exerciseStatus.className = "status exercise-status standing";
-            return;
-        } 
-
-        const minConfidence = 0.6;
-        const joints = [leftHip, leftKnee, leftAnkle, rightHip, rightKnee, rightAnkle];
-        const validPose = joints.every(joint => joint && joint.visibility > minConfidence);
-        
-        if (!validPose) {
-            return;
-        }
-
-        const issues = [];
-        const leftKneeX = leftKnee.x;
-        const leftHipX = leftHip.x;
-        const leftAnkleX = leftAnkle.x;
-        const rightKneeX = rightKnee.x;
-        const rightHipX = rightHip.x;
-        const rightAnkleX = rightAnkle.x;
-        
-        const leftMidpointX = (leftHipX + leftAnkleX) / 2;
-        const rightMidpointX = (rightHipX + rightAnkleX) / 2;
-        const leftKneeDeviation = Math.abs((leftKneeX - leftMidpointX).toFixed(3));
-        const rightKneeDeviation = Math.abs((rightKneeX - rightMidpointX).toFixed(3));
-
-        const inwardThreshold = 0.015;
-        const outwardThreshold = 0.045;
-
-        if (leftKneeDeviation < inwardThreshold) {
-            issues.push("Left knee caving inward");
-        } else if (leftKneeDeviation > outwardThreshold) {
-            issues.push("Left knee caving outward");
-        }
-
-        if (rightKneeDeviation < inwardThreshold) {
-            issues.push("Right knee caving inward");
-        } else if (rightKneeDeviation > outwardThreshold) {
-            issues.push("Right knee caving outward");
-        }
-
-        const kneeAsymmetry = Math.abs(leftKneeDeviation - rightKneeDeviation);
-        const symmetryThreshold = 0.015;
-        if (kneeAsymmetry > symmetryThreshold) {
-            issues.push("Uneven knee positioning");
-        }
-
-        const leftDepthGood = leftHip.y > leftKnee.y;
-        const rightDepthGood = rightHip.y > rightKnee.y;
-        
-        if (!leftDepthGood || !rightDepthGood) {
-            issues.push("Squat deeper - hips should go below knees");
-        }
-        
-        let overallStatus, statusClass;
-        
-        if (issues.length === 0) {
-            overallStatus = "Excellent squat form!";
-            statusClass = "good";
-        } else if (issues.length <= 2) {
-            overallStatus = `Bad form: ${issues.join(", ")}`;
-            statusClass = "warning";
-        } else {
-            overallStatus = `Form needs work: ${issues.slice(0, 2).join(", ")}`;
-            statusClass = "error";
-        }
-
-        // Display info in the UI
-        this.exerciseStatus.className = `status exercise-status ${statusClass}`;
-        this.exerciseStatus.textContent = overallStatus;
     }
 }

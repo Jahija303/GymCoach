@@ -14,12 +14,28 @@
 </head>
 <body>
   <div class="header">
-    <select id="exercise-select">
-      <option value="">Select exercise</option>
-      <option value="plank">Plank</option>
-      <option value="pushup">Push Up</option>
-      <option value="squat">Squat</option>
-    </select>
+    <div class="header-content">
+      <select id="exercise-select">
+        <option value="">Select exercise</option>
+        <option value="plank">Plank</option>
+        <option value="pushup">Push Up</option>
+        <option value="squat">Squat</option>
+      </select>
+      <div id="validation-results" class="validation-results">
+        <div class="validation-item">
+          <label>Movement Status:</label>
+          <span id="movement-status" class="status-value">Ready</span>
+        </div>
+        <div class="validation-item">
+          <label>Form Score:</label>
+          <span id="form-score" class="status-value">-</span>
+        </div>
+        <div class="validation-item">
+          <label>Tempo:</label>
+          <span id="tempo-status" class="status-value">-</span>
+        </div>
+      </div>
+    </div>
   </div>
   <div id="video-container">
     <div class="wrapper">

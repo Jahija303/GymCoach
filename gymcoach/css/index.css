@@ -21,14 +21,78 @@ h1 {
 
 .header {
   margin: 10px;
+  width: 90%;
+  max-width: 1600px;
+}
+
+.header-content {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px;
+  background-color: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
 
 #exercise-select {
   width: 150px;
-  padding: 4px;
+  padding: 8px;
   border: 1px solid #ccc;
+  border-radius: 4px;
   background-color: white;
   font-size: 14px;
+}
+
+.validation-results {
+  display: flex;
+  gap: 20px;
+  align-items: center;
+}
+
+.validation-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 80px;
+}
+
+.validation-item label {
+  font-size: 12px;
+  color: #666;
+  margin-bottom: 4px;
+  font-weight: bold;
+}
+
+.status-value {
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 14px;
+  font-weight: bold;
+  text-align: center;
+  min-width: 60px;
+  background-color: #f5f5f5;
+  color: #333;
+}
+
+.status-value.good {
+  background-color: #d4edda;
+  color: #155724;
+}
+
+.status-value.warning {
+  background-color: #fff3cd;
+  color: #856404;
+}
+
+.status-value.error {
+  background-color: #f8d7da;
+  color: #721c24;
+}
+
+.status-value.active {
+  background-color: #cce5ff;
+  color: #004085;
 }
 
 #video-container {

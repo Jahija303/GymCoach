@@ -103,3 +103,16 @@ todo:
 - Create a new box with an empty 2D graph using three.js
 - When user selects an exercise, plot this graph with the user hip and leg angles (side squat only)
 - Plot the valid squat values onto the graph so the user has a reference, think about how you will handle the time axis, loop every x seconds or something better
+
+# 01.09.2025
+
+branch: 237-validate-excersize-v2
+
+todo:
+- We need to decide when the user starts and ends the movement
+- Compare the start and end of the movement with ideal movement line
+
+progress:
+- Drawing a template graph in a better way
+- Added spheres around the keypoint angles being calculated
+- Trying to detect the start and end of the user movement and comparing the final movement to the template movement
