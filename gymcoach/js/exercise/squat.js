@@ -81,7 +81,9 @@ export class Squat extends Exercise {
             minAngle: 70,
             colors: {
                 leg: '#FF6B6B',
-                hip: '#4ECDC4'
+                hip: '#4ECDC4',
+                templateLeg: '#FFA500',
+                templateHip: '#9370DB'
             }
         };
 
@@ -125,15 +127,17 @@ export class Squat extends Exercise {
         // Draw legend
         const legend = [
             { name: 'Leg', color: this.graphSettings.colors.leg },
-            { name: 'Hip', color: this.graphSettings.colors.hip }
+            { name: 'Hip', color: this.graphSettings.colors.hip },
+            { name: 'Template Leg', color: this.graphSettings.colors.templateLeg },
+            { name: 'Template Hip', color: this.graphSettings.colors.templateHip }
         ];
 
         legend.forEach((item, index) => {
             const y = 20 + (index * 20);
             ctx.fillStyle = item.color;
-            ctx.fillRect(canvas.width - 80, y, 15, 10);
+            ctx.fillRect(canvas.width - 120, y, 15, 10);
             ctx.fillStyle = '#fff';
-            ctx.fillText(item.name, canvas.width - 60, y + 8);
+            ctx.fillText(item.name, canvas.width - 100, y + 8);
         });
     }
 
@@ -188,9 +192,58 @@ export class Squat extends Exercise {
         return (rightShoulder?.visibility + rightHip?.visibility + rightKnee?.visibility + rightAnkle?.visibility) / 4 || 0;
     }
 
+    drawTemplateLines() {
+        const ctx = this.graphCtx;
+        const canvas = this.graphCanvas;
+        
+        // Draw template hip angles
+        ctx.strokeStyle = this.graphSettings.colors.templateHip;
+        ctx.lineWidth = 2;
+        ctx.setLineDash([5, 5]); // Dashed line for template
+        ctx.beginPath();
+        
+        PROPER_SQUAT_FORM_HIP_ANGLES_IN_TIME.forEach((point, index) => {
+            // Convert time (0-3 seconds) to x coordinate
+            const x = (point.time / 3.0) * canvas.width;
+            const y = canvas.height - ((point.angle - this.graphSettings.minAngle) / 
+                     (this.graphSettings.maxAngle - this.graphSettings.minAngle)) * canvas.height;
+            
+            if (index === 0) {
+                ctx.moveTo(x, y);
+            } else {
+                ctx.lineTo(x, y);
+            }
+        });
+        ctx.stroke();
+        
+        // Draw template knee angles
+        ctx.strokeStyle = this.graphSettings.colors.templateLeg;
+        ctx.lineWidth = 2;
+        ctx.setLineDash([5, 5]); // Dashed line for template
+        ctx.beginPath();
+        
+        PROPER_SQUAT_FORM_KNEE_ANGLES_IN_TIME.forEach((point, index) => {
+            // Convert time (0-3 seconds) to x coordinate
+            const x = (point.time / 3.0) * canvas.width;
+            const y = canvas.height - ((point.angle - this.graphSettings.minAngle) / 
+                     (this.graphSettings.maxAngle - this.graphSettings.minAngle)) * canvas.height;
+            
+            if (index === 0) {
+                ctx.moveTo(x, y);
+            } else {
+                ctx.lineTo(x, y);
+            }
+        });
+        ctx.stroke();
+        
+        // Reset line dash
+        ctx.setLineDash([]);
+    }
+
     drawGraph() {
         this.drawGraphBackground();
-        
+        this.drawTemplateLines();
+
         const ctx = this.graphCtx;
         const canvas = this.graphCanvas;
         const currentTime = Date.now() - this.startTime;
