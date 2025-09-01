@@ -192,62 +192,16 @@ export class Squat extends Exercise {
         return (rightShoulder?.visibility + rightHip?.visibility + rightKnee?.visibility + rightAnkle?.visibility) / 4 || 0;
     }
 
-    drawTemplateLines() {
-        const ctx = this.graphCtx;
-        const canvas = this.graphCanvas;
-        
-        // Draw template hip angles
-        ctx.strokeStyle = this.graphSettings.colors.templateHip;
-        ctx.lineWidth = 2;
-        ctx.setLineDash([5, 5]); // Dashed line for template
-        ctx.beginPath();
-        
-        PROPER_SQUAT_FORM_HIP_ANGLES_IN_TIME.forEach((point, index) => {
-            // Convert time (0-3 seconds) to x coordinate
-            const x = (point.time / 3.0) * canvas.width;
-            const y = canvas.height - ((point.angle - this.graphSettings.minAngle) / 
-                     (this.graphSettings.maxAngle - this.graphSettings.minAngle)) * canvas.height;
-            
-            if (index === 0) {
-                ctx.moveTo(x, y);
-            } else {
-                ctx.lineTo(x, y);
-            }
-        });
-        ctx.stroke();
-        
-        // Draw template knee angles
-        ctx.strokeStyle = this.graphSettings.colors.templateLeg;
-        ctx.lineWidth = 2;
-        ctx.setLineDash([5, 5]); // Dashed line for template
-        ctx.beginPath();
-        
-        PROPER_SQUAT_FORM_KNEE_ANGLES_IN_TIME.forEach((point, index) => {
-            // Convert time (0-3 seconds) to x coordinate
-            const x = (point.time / 3.0) * canvas.width;
-            const y = canvas.height - ((point.angle - this.graphSettings.minAngle) / 
-                     (this.graphSettings.maxAngle - this.graphSettings.minAngle)) * canvas.height;
-            
-            if (index === 0) {
-                ctx.moveTo(x, y);
-            } else {
-                ctx.lineTo(x, y);
-            }
-        });
-        ctx.stroke();
-        
-        // Reset line dash
-        ctx.setLineDash([]);
-    }
-
     drawGraph() {
         this.drawGraphBackground();
-        this.drawTemplateLines();
 
         const ctx = this.graphCtx;
         const canvas = this.graphCanvas;
         const currentTime = Date.now() - this.startTime;
         
+        this.drawTemplateLine(ctx, canvas, PROPER_SQUAT_FORM_HIP_ANGLES_IN_TIME, this.graphSettings.colors.templateHip);
+        this.drawTemplateLine(ctx, canvas, PROPER_SQUAT_FORM_KNEE_ANGLES_IN_TIME, this.graphSettings.colors.templateLeg);
+
         Object.keys(this.angleHistory).forEach(angleType => {
             const data = this.angleHistory[angleType];
             if (data.length < 2) return;
@@ -272,6 +226,53 @@ export class Squat extends Exercise {
             
             ctx.stroke();
         });
+    }
+
+    drawTemplateLine(ctx, canvas, templateData, color) {
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 1;
+        ctx.setLineDash([5, 5]); // Dashed line for template
+        ctx.beginPath();
+        
+        const currentTime = Date.now() - this.startTime;
+        const templateCycleDuration = 3000; // 3 seconds in milliseconds
+        
+        // Calculate how many cycles we need to cover the visible time window
+        const visibleTimeStart = currentTime - this.graphSettings.maxTime;
+        const visibleTimeEnd = currentTime;
+        
+        // Find the first cycle that could be visible
+        const firstCycle = Math.floor(visibleTimeStart / templateCycleDuration);
+        const lastCycle = Math.ceil(visibleTimeEnd / templateCycleDuration) + 1;
+        
+        let firstPoint = true;
+        
+        for (let cycle = firstCycle; cycle <= lastCycle; cycle++) {
+            templateData.forEach((point, index) => {
+                // Calculate the absolute time for this point in this cycle
+                const absoluteTime = (cycle * templateCycleDuration) + (point.time * 1000);
+                
+                // Convert to canvas x position (same logic as user data)
+                const x = ((currentTime - absoluteTime) / this.graphSettings.maxTime) * canvas.width;
+                const adjustedX = canvas.width - x; // Reverse x to show newest data on right
+                
+                // Only draw if the point is within the visible time window
+                if (adjustedX >= -10 && adjustedX <= canvas.width + 10) { // Small buffer for smooth transitions
+                    const y = canvas.height - ((point.angle - this.graphSettings.minAngle) / 
+                             (this.graphSettings.maxAngle - this.graphSettings.minAngle)) * canvas.height;
+                    
+                    if (firstPoint) {
+                        ctx.moveTo(adjustedX, y);
+                        firstPoint = false;
+                    } else {
+                        ctx.lineTo(adjustedX, y);
+                    }
+                }
+            });
+        }
+        
+        ctx.stroke();
+        ctx.setLineDash([]); // Reset to solid line for subsequent drawings
     }
 
     validate(results) {
