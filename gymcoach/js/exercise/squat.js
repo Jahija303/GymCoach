@@ -1,21 +1,61 @@
 import { Exercise } from './exercise.js';
 import { LANDMARK } from '../util/landmark_reader.js';
+import { CANVAS_HEIGHT, CANVAS_WIDTH } from '../util/pose.js';
 
-const VALID_HIP_ANGLES_SIDE = {
-    standing: [165, 180],       // Nearly straight hip (slight forward lean is normal)
-    quarterSquat: [140, 165],   // Slight hip hinge, minimal flexion
-    halfSquat: [110, 140],      // Moderate hip flexion, thighs approaching parallel
-    deepSquat: [85, 110],       // Significant hip flexion, below parallel
-    bottomPosition: [70, 85]    // Deep squat bottom, maximum hip flexion
-};
+// const VALID_HIP_ANGLES_SIDE = {
+//     standing: [165, 180],       // Nearly straight hip (slight forward lean is normal)
+//     quarterSquat: [140, 165],   // Slight hip hinge, minimal flexion
+//     halfSquat: [110, 140],      // Moderate hip flexion, thighs approaching parallel
+//     deepSquat: [85, 110],       // Significant hip flexion, below parallel
+//     bottomPosition: [70, 85]    // Deep squat bottom, maximum hip flexion
+// };
 
-const VALID_LEG_ANGLES_SIDE = {
-    standing: [170, 180],       // Nearly straight legs
-    quarterSquat: [145, 170],   // Slight knee bend
-    halfSquat: [120, 145],      // Moderate knee flexion, thighs parallel to ground
-    deepSquat: [90, 120],       // Significant knee bend, below parallel
-    bottomPosition: [70, 90]    // Maximum knee flexion at bottom
-};
+// const VALID_LEG_ANGLES_SIDE = {
+//     standing: [170, 180],       // Nearly straight legs
+//     quarterSquat: [145, 170],   // Slight knee bend
+//     halfSquat: [120, 145],      // Moderate knee flexion, thighs parallel to ground
+//     deepSquat: [90, 120],       // Significant knee bend, below parallel
+//     bottomPosition: [70, 90]    // Maximum knee flexion at bottom
+// };
+
+const PROPER_SQUAT_FORM_HIP_ANGLES_IN_TIME = [
+    { time: 0.0, angle: 178 },    // Standing position (165-180 range)
+    { time: 0.2, angle: 172 },    // Start of descent
+    { time: 0.4, angle: 160 },    // Early descent (quarterSquat: 140-165)
+    { time: 0.6, angle: 150 },    // Quarter squat
+    { time: 0.8, angle: 130 },    // Half squat (110-140 range)
+    { time: 1.0, angle: 110 },    // Entering deep squat
+    { time: 1.2, angle: 90 },     // Deep squat (85-110 range)
+    { time: 1.4, angle: 75 },     // Bottom position (70-85 range)
+    { time: 1.6, angle: 90 },     // Start ascent
+    { time: 1.8, angle: 110 },    // Early ascent
+    { time: 2.0, angle: 130 },    // Half way up
+    { time: 2.2, angle: 150 },    // Quarter position
+    { time: 2.4, angle: 160 },    // Near top
+    { time: 2.6, angle: 172 },    // Almost standing
+    { time: 2.8, angle: 178 },    // Return to standing
+    { time: 3.0, angle: 178 }     // Standing position
+];
+
+const PROPER_SQUAT_FORM_KNEE_ANGLES_IN_TIME = [
+    { time: 0.0, angle: 178 },    // Standing position (170-180 range)
+    { time: 0.2, angle: 172 },    // Start of descent
+    { time: 0.4, angle: 165 },    // Early descent (quarterSquat: 145-170)
+    { time: 0.6, angle: 155 },    // Quarter squat
+    { time: 0.8, angle: 140 },    // Half squat (120-145 range)
+    { time: 1.0, angle: 125 },    // Entering deep squat
+    { time: 1.2, angle: 105 },    // Deep squat (90-120 range)
+    { time: 1.4, angle: 80 },     // Bottom position (70-90 range)
+    { time: 1.6, angle: 105 },    // Start ascent
+    { time: 1.8, angle: 125 },    // Early ascent
+    { time: 2.0, angle: 140 },    // Half way up
+    { time: 2.2, angle: 155 },    // Quarter position
+    { time: 2.4, angle: 165 },    // Near top
+    { time: 2.6, angle: 172 },    // Almost standing
+    { time: 2.8, angle: 178 },    // Return to standing
+    { time: 3.0, angle: 178 }     // Standing position
+];
+
 export class Squat extends Exercise {
     constructor() {
         super();
@@ -23,33 +63,25 @@ export class Squat extends Exercise {
         this.squatPhases = [];
         this.repCounter = 0;
         this.angleHistory = {
-            leftLeg: [],
-            rightLeg: [],
-            leftHip: [],
-            rightHip: []
+            leg: [],
+            hip: []
         };
         this.startTime = Date.now();
         this.initializeAngleGraph();
     }
 
     initializeAngleGraph() {
-        // Create the graph container
-        const graphContainer = document.getElementById('angle-graph-container');
-
-        // Create canvas for the graph
         this.graphCanvas = document.getElementById('angle-graph-canvas');
-        this.graphCanvas.width = 768;  // Match CSS video width
-        this.graphCanvas.height = 432; // Match CSS video height
+        this.graphCanvas.width = CANVAS_WIDTH;
+        this.graphCanvas.height = CANVAS_HEIGHT;
         this.graphCtx = this.graphCanvas.getContext('2d');
         this.graphSettings = {
-            maxTime: 30000, // 30 seconds
+            maxTime: 3000, // 3 seconds
             maxAngle: 180,
             minAngle: 70,
             colors: {
-                leftLeg: '#FF6B6B',
-                rightLeg: '#4ECDC4',
-                leftHip: '#45B7D1',
-                rightHip: '#96CEB4'
+                leg: '#FF6B6B',
+                hip: '#4ECDC4'
             }
         };
 
@@ -88,16 +120,14 @@ export class Squat extends Exercise {
         ctx.font = '12px Arial';
         ctx.fillText('180°', 5, 15);
         ctx.fillText('70°', 5, canvas.height - 5);
-        ctx.fillText('30s', canvas.width - 30, canvas.height - 5);
-        
+        ctx.fillText('3s', canvas.width - 30, canvas.height - 5);
+
         // Draw legend
         const legend = [
-            { name: 'L Leg', color: this.graphSettings.colors.leftLeg },
-            { name: 'R Leg', color: this.graphSettings.colors.rightLeg },
-            { name: 'L Hip', color: this.graphSettings.colors.leftHip },
-            { name: 'R Hip', color: this.graphSettings.colors.rightHip }
+            { name: 'Leg', color: this.graphSettings.colors.leg },
+            { name: 'Hip', color: this.graphSettings.colors.hip }
         ];
-        
+
         legend.forEach((item, index) => {
             const y = 20 + (index * 20);
             ctx.fillStyle = item.color;
@@ -109,14 +139,28 @@ export class Squat extends Exercise {
 
     updateAngleGraph(angles) {
         const currentTime = Date.now() - this.startTime;
+
+        // Determine which side is more visible/confident
+        const leftSide = {
+            leg: angles.leftLeg,
+            hip: angles.leftHip,
+            confidence: this.getLeftSideConfidence()
+        };
+
+        const rightSide = {
+            leg: angles.rightLeg,
+            hip: angles.rightHip,
+            confidence: this.getRightSideConfidence()
+        };
+
+        // Use the side with higher confidence
+        const selectedSide = leftSide.confidence >= rightSide.confidence ? leftSide : rightSide;
         
-        // Add new data points
-        this.angleHistory.leftLeg.push({ time: currentTime, angle: angles.leftLeg });
-        this.angleHistory.rightLeg.push({ time: currentTime, angle: angles.rightLeg });
-        this.angleHistory.leftHip.push({ time: currentTime, angle: angles.leftHip });
-        this.angleHistory.rightHip.push({ time: currentTime, angle: angles.rightHip });
+        // Add new data points using the selected side
+        this.angleHistory.leg.push({ time: currentTime, angle: selectedSide.leg });
+        this.angleHistory.hip.push({ time: currentTime, angle: selectedSide.hip });
         
-        // Remove old data points (keep last 30 seconds)
+        // Remove old data points (keep last 3 seconds)
         Object.keys(this.angleHistory).forEach(key => {
             this.angleHistory[key] = this.angleHistory[key].filter(
                 point => currentTime - point.time <= this.graphSettings.maxTime
@@ -124,6 +168,24 @@ export class Squat extends Exercise {
         });
         
         this.drawGraph();
+    }
+
+    getLeftSideConfidence() {
+        const leftShoulder = this.reader.getLandmark(LANDMARK.LEFT_SHOULDER);
+        const leftHip = this.reader.getLandmark(LANDMARK.LEFT_HIP);
+        const leftKnee = this.reader.getLandmark(LANDMARK.LEFT_KNEE);
+        const leftAnkle = this.reader.getLandmark(LANDMARK.LEFT_ANKLE);
+        
+        return (leftShoulder?.visibility + leftHip?.visibility + leftKnee?.visibility + leftAnkle?.visibility) / 4 || 0;
+    }
+
+    getRightSideConfidence() {
+        const rightShoulder = this.reader.getLandmark(LANDMARK.RIGHT_SHOULDER);
+        const rightHip = this.reader.getLandmark(LANDMARK.RIGHT_HIP);
+        const rightKnee = this.reader.getLandmark(LANDMARK.RIGHT_KNEE);
+        const rightAnkle = this.reader.getLandmark(LANDMARK.RIGHT_ANKLE);
+        
+        return (rightShoulder?.visibility + rightHip?.visibility + rightKnee?.visibility + rightAnkle?.visibility) / 4 || 0;
     }
 
     drawGraph() {
