@@ -89,26 +89,78 @@ export class Three {
         });
     }
 
-    // Draw the 3D stickman representation
+    addSphere(coords, color = 0xff0000, radius = 0.01, cameraId = null) {
+        const { scene } = window.threeJSContext;
+        const geometry = new THREE.SphereGeometry(radius, 16, 16);
+        const material = new THREE.MeshBasicMaterial({ color: color });
+        const sphere = new THREE.Mesh(geometry, material);
+
+        sphere.position.set(coords[0], coords[1], coords[2]);
+        sphere.userData.isPoseSphere = true;
+        sphere.userData.cameraId = cameraId;
+
+        scene.add(sphere);
+        return sphere;
+    }
+
+    clearPoseSpheres(cameraId = null) {
+        const { scene } = window.threeJSContext;
+        const spheresToRemove = [];
+        scene.traverse((child) => {
+            if (child.userData.isPoseSphere === true) {
+                if (cameraId === null || child.userData.cameraId === cameraId) {
+                    spheresToRemove.push(child);
+                }
+            }
+        });
+
+        spheresToRemove.forEach(sphere => {
+            scene.remove(sphere);
+            sphere.geometry.dispose();
+            sphere.material.dispose();
+        });
+    }
+
     drawStickman3D(landmarks, color, cameraId) {
         this.clearPoseLines(cameraId);
+        this.clearPoseSpheres(cameraId);
+        
+        // Draw pose connections
         POSE_CONNECTIONS.forEach(([i, j]) => {
             const landmark1 = landmarks[i];
             const landmark2 = landmarks[j];
-            
+
             if (landmark1 && landmark2 && landmark1.visibility > 0.5 && landmark2.visibility > 0.5) {
-                const pos1 = [
-                    landmark1.x,
-                    (1 - landmark1.y) + 1, // Flip Y to match screen coordinates
-                    -landmark1.z // Negate Z for better depth perception
-                ];
-                const pos2 = [
-                    landmark2.x,
-                    (1 - landmark2.y) + 1,
-                    -landmark2.z // Negate Z for better depth perception
-                ];
+                const pos1 = this.formattedLandmarkCoords(landmark1);
+                const pos2 = this.formattedLandmarkCoords(landmark2);
                 this.addLine(pos1, pos2, color, cameraId);
             }
         });
+
+        // left_hip, right_hip
+        [23, 24].forEach(index => {
+            const landmark = landmarks[index];
+            if (landmark && landmark.visibility > 0.5) {
+                const pos = this.formattedLandmarkCoords(landmark);
+                this.addSphere(pos, 0x4ECDC4, 0.025, cameraId); // Turquoise color
+            }
+        });
+
+        // left_knee, right_knee
+        [25, 26].forEach(index => {
+            const landmark = landmarks[index];
+            if (landmark && landmark.visibility > 0.5) {
+                const pos = this.formattedLandmarkCoords(landmark);
+                this.addSphere(pos, 0xFF6B6B, 0.025, cameraId); // Orange-red color
+            }
+        });
+    }
+
+    formattedLandmarkCoords(landmark) {
+        return [
+            landmark.x,
+            (1 - landmark.y) + 1,
+            -landmark.z
+        ];
     }
 }
