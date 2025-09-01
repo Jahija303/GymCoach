@@ -61,6 +61,7 @@ export class Squat extends Exercise {
         };
         this.lastMovementDuration = null;
         this.tempoWarningShown = false;
+        this.templatePauseDuration = 2000; // 2 seconds pause between template cycles
 
         this.STANDING_HIP_RANGE = [165, 180];
         this.STANDING_LEG_RANGE = [165, 180];
@@ -499,36 +500,43 @@ export class Squat extends Exercise {
         
         const currentTime = Date.now() - this.startTime;
         const templateCycleDuration = 3000; // 3 seconds in milliseconds
+        const totalCycleDuration = templateCycleDuration + this.templatePauseDuration; // Include pause
         
         // Calculate how many cycles we need to cover the visible time window
         const visibleTimeStart = currentTime - this.graphSettings.maxTime;
         const visibleTimeEnd = currentTime;
         
         // Find the first cycle that could be visible
-        const firstCycle = Math.floor(visibleTimeStart / templateCycleDuration);
-        const lastCycle = Math.ceil(visibleTimeEnd / templateCycleDuration) + 1;
+        const firstCycle = Math.floor(visibleTimeStart / totalCycleDuration);
+        const lastCycle = Math.ceil(visibleTimeEnd / totalCycleDuration) + 1;
         
         let firstPoint = true;
         
         for (let cycle = firstCycle; cycle <= lastCycle; cycle++) {
+            const cycleStartTime = cycle * totalCycleDuration;
+            const cycleEndTime = cycleStartTime + templateCycleDuration;
+            
             templateData.forEach((point, index) => {
                 // Calculate the absolute time for this point in this cycle
-                const absoluteTime = (cycle * templateCycleDuration) + (point.time * 1000);
+                const absoluteTime = cycleStartTime + (point.time * 1000);
                 
-                // Convert to canvas x position (same logic as user data)
-                const x = ((currentTime - absoluteTime) / this.graphSettings.maxTime) * canvas.width;
-                const adjustedX = canvas.width - x; // Reverse x to show newest data on right
-                
-                // Only draw if the point is within the visible time window
-                if (adjustedX >= -10 && adjustedX <= canvas.width + 10) { // Small buffer for smooth transitions
-                    const y = canvas.height - ((point.angle - this.graphSettings.minAngle) / 
-                             (this.graphSettings.maxAngle - this.graphSettings.minAngle)) * canvas.height;
+                // Only draw if we're within the active part of the cycle (not during pause)
+                if (absoluteTime >= cycleStartTime && absoluteTime <= cycleEndTime) {
+                    // Convert to canvas x position (same logic as user data)
+                    const x = ((currentTime - absoluteTime) / this.graphSettings.maxTime) * canvas.width;
+                    const adjustedX = canvas.width - x; // Reverse x to show newest data on right
                     
-                    if (firstPoint) {
-                        ctx.moveTo(adjustedX, y);
-                        firstPoint = false;
-                    } else {
-                        ctx.lineTo(adjustedX, y);
+                    // Only draw if the point is within the visible time window
+                    if (adjustedX >= -10 && adjustedX <= canvas.width + 10) { // Small buffer for smooth transitions
+                        const y = canvas.height - ((point.angle - this.graphSettings.minAngle) / 
+                                 (this.graphSettings.maxAngle - this.graphSettings.minAngle)) * canvas.height;
+                        
+                        if (firstPoint) {
+                            ctx.moveTo(adjustedX, y);
+                            firstPoint = false;
+                        } else {
+                            ctx.lineTo(adjustedX, y);
+                        }
                     }
                 }
             });
