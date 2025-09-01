@@ -2,49 +2,19 @@ import { Exercise } from './exercise.js';
 import { LANDMARK } from '../util/landmark_reader.js';
 
 const VALID_HIP_ANGLES_SIDE = {
-    standing: {
-        start: 165,
-        end: 180       // Nearly straight hip (slight forward lean is normal)
-    },
-    quarterSquat: {
-        start: 140,
-        end: 165       // Slight hip hinge, minimal flexion
-    },
-    halfSquat: {
-        start: 110,
-        end: 140       // Moderate hip flexion, thighs approaching parallel
-    },
-    deepSquat: {
-        start: 85,
-        end: 110       // Significant hip flexion, below parallel
-    },
-    bottomPosition: {
-        start: 70,
-        end: 85        // Deep squat bottom, maximum hip flexion
-    }
+    standing: [165, 180],       // Nearly straight hip (slight forward lean is normal)
+    quarterSquat: [140, 165],   // Slight hip hinge, minimal flexion
+    halfSquat: [110, 140],      // Moderate hip flexion, thighs approaching parallel
+    deepSquat: [85, 110],       // Significant hip flexion, below parallel
+    bottomPosition: [70, 85]    // Deep squat bottom, maximum hip flexion
 };
 
 const VALID_LEG_ANGLES_SIDE = {
-    standing: {
-        start: 170,
-        end: 180       // Nearly straight legs
-    },
-    quarterSquat: {
-        start: 145,
-        end: 170       // Slight knee bend
-    },
-    halfSquat: {
-        start: 120,
-        end: 145       // Moderate knee flexion, thighs parallel to ground
-    },
-    deepSquat: {
-        start: 90,
-        end: 120       // Significant knee bend, below parallel
-    },
-    bottomPosition: {
-        start: 70,
-        end: 90        // Maximum knee flexion at bottom
-    }
+    standing: [170, 180],       // Nearly straight legs
+    quarterSquat: [145, 170],   // Slight knee bend
+    halfSquat: [120, 145],      // Moderate knee flexion, thighs parallel to ground
+    deepSquat: [90, 120],       // Significant knee bend, below parallel
+    bottomPosition: [70, 90]    // Maximum knee flexion at bottom
 };
 export class Squat extends Exercise {
     constructor() {
@@ -52,6 +22,141 @@ export class Squat extends Exercise {
         this.currentSquatState = null;
         this.squatPhases = [];
         this.repCounter = 0;
+        this.angleHistory = {
+            leftLeg: [],
+            rightLeg: [],
+            leftHip: [],
+            rightHip: []
+        };
+        this.startTime = Date.now();
+        this.initializeAngleGraph();
+    }
+
+    initializeAngleGraph() {
+        // Create the graph container
+        const graphContainer = document.getElementById('angle-graph-container');
+
+        // Create canvas for the graph
+        this.graphCanvas = document.getElementById('angle-graph-canvas');
+        this.graphCanvas.width = 768;  // Match CSS video width
+        this.graphCanvas.height = 432; // Match CSS video height
+        this.graphCtx = this.graphCanvas.getContext('2d');
+        this.graphSettings = {
+            maxTime: 30000, // 30 seconds
+            maxAngle: 180,
+            minAngle: 70,
+            colors: {
+                leftLeg: '#FF6B6B',
+                rightLeg: '#4ECDC4',
+                leftHip: '#45B7D1',
+                rightHip: '#96CEB4'
+            }
+        };
+
+        this.drawGraphBackground();
+    }
+
+    drawGraphBackground() {
+        const ctx = this.graphCtx;
+        const canvas = this.graphCanvas;
+        
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        // Draw grid
+        ctx.strokeStyle = '#333';
+        ctx.lineWidth = 1;
+
+        // Vertical lines (time)
+        for (let i = 0; i <= 10; i++) {
+            const x = (i / 10) * canvas.width;
+            ctx.beginPath();
+            ctx.moveTo(x, 0);
+            ctx.lineTo(x, canvas.height);
+            ctx.stroke();
+        }
+
+        // Horizontal lines (angles)
+        for (let i = 0; i <= 10; i++) {
+            const y = (i / 10) * canvas.height;
+            ctx.beginPath();
+            ctx.moveTo(0, y);
+            ctx.lineTo(canvas.width, y);
+            ctx.stroke();
+        }
+
+        ctx.fillStyle = '#fff';
+        ctx.font = '12px Arial';
+        ctx.fillText('180°', 5, 15);
+        ctx.fillText('70°', 5, canvas.height - 5);
+        ctx.fillText('30s', canvas.width - 30, canvas.height - 5);
+        
+        // Draw legend
+        const legend = [
+            { name: 'L Leg', color: this.graphSettings.colors.leftLeg },
+            { name: 'R Leg', color: this.graphSettings.colors.rightLeg },
+            { name: 'L Hip', color: this.graphSettings.colors.leftHip },
+            { name: 'R Hip', color: this.graphSettings.colors.rightHip }
+        ];
+        
+        legend.forEach((item, index) => {
+            const y = 20 + (index * 20);
+            ctx.fillStyle = item.color;
+            ctx.fillRect(canvas.width - 80, y, 15, 10);
+            ctx.fillStyle = '#fff';
+            ctx.fillText(item.name, canvas.width - 60, y + 8);
+        });
+    }
+
+    updateAngleGraph(angles) {
+        const currentTime = Date.now() - this.startTime;
+        
+        // Add new data points
+        this.angleHistory.leftLeg.push({ time: currentTime, angle: angles.leftLeg });
+        this.angleHistory.rightLeg.push({ time: currentTime, angle: angles.rightLeg });
+        this.angleHistory.leftHip.push({ time: currentTime, angle: angles.leftHip });
+        this.angleHistory.rightHip.push({ time: currentTime, angle: angles.rightHip });
+        
+        // Remove old data points (keep last 30 seconds)
+        Object.keys(this.angleHistory).forEach(key => {
+            this.angleHistory[key] = this.angleHistory[key].filter(
+                point => currentTime - point.time <= this.graphSettings.maxTime
+            );
+        });
+        
+        this.drawGraph();
+    }
+
+    drawGraph() {
+        this.drawGraphBackground();
+        
+        const ctx = this.graphCtx;
+        const canvas = this.graphCanvas;
+        const currentTime = Date.now() - this.startTime;
+        
+        Object.keys(this.angleHistory).forEach(angleType => {
+            const data = this.angleHistory[angleType];
+            if (data.length < 2) return;
+            
+            ctx.strokeStyle = this.graphSettings.colors[angleType];
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            
+            data.forEach((point, index) => {
+                const x = ((currentTime - point.time) / this.graphSettings.maxTime) * canvas.width;
+                const y = canvas.height - ((point.angle - this.graphSettings.minAngle) / 
+                         (this.graphSettings.maxAngle - this.graphSettings.minAngle)) * canvas.height;
+                
+                const adjustedX = canvas.width - x; // Reverse x to show newest data on right
+                
+                if (index === 0) {
+                    ctx.moveTo(adjustedX, y);
+                } else {
+                    ctx.lineTo(adjustedX, y);
+                }
+            });
+            
+            ctx.stroke();
+        });
     }
 
     validate(results) {
@@ -59,17 +164,13 @@ export class Squat extends Exercise {
             const normalizedKeypoints = this.normalizeKeypointsZ(results?.landmarks[0]);
             this.reader.setLandmarks(normalizedKeypoints);
         } else {
-            // console.log("No landmarks detected");
             return;
         }
 
-        if (this.bodyDimensions == null){
-            super.calibrateBodyDimensions();
-            return;
-        }
-
-        // this.exerciseStatus.textContent = "Validating squat form...";
-        this.exerciseStatus.className = "status exercise-status";
+        // if (this.bodyDimensions == null){
+        //     super.calibrateBodyDimensions();
+        //     return;
+        // }
 
         const leftShoulder = this.reader.getLandmark(LANDMARK.LEFT_SHOULDER);
         const leftHip = this.reader.getLandmark(LANDMARK.LEFT_HIP);
@@ -86,12 +187,26 @@ export class Squat extends Exercise {
         const leftHipAngle = this.calculateAngle2D(leftShoulder, leftHip, leftKnee);
         const rightHipAngle = this.calculateAngle2D(rightShoulder, rightHip, rightKnee);
 
+        // Output current joint angles
+        const currentAngles = {
+            leftLeg: leftLegAngle || 0,
+            rightLeg: rightLegAngle || 0,
+            leftHip: leftHipAngle || 0,
+            rightHip: rightHipAngle || 0
+        };
+
+        // Update the graph with current angles
+        this.updateAngleGraph(currentAngles);
+
+        // Display angles in the exercise status
+        this.exerciseStatus.textContent = `L Leg: ${currentAngles.leftLeg.toFixed(1)}° | R Leg: ${currentAngles.rightLeg.toFixed(1)}° | L Hip: ${currentAngles.leftHip.toFixed(1)}° | R Hip: ${currentAngles.rightHip.toFixed(1)}°`;
+        this.exerciseStatus.className = "status exercise-status";
+
+        // Keep the existing rotation detection for different exercise modes
         const rotation = Math.abs(this.calculate3DBodyRotation().rotation);
         if (rotation >= 130 && rotation <= 185) {
-            // console.log("Front squat detected");
             this.validateFrontSquatForm(leftHip, leftKnee, leftAnkle, rightHip, rightKnee, rightAnkle);
         } else if (rotation >= 75 && rotation <= 110) {
-            // console.log("Side squat detected");
             this.validateSideSquatForm(leftLegAngle, leftHipAngle, rightLegAngle, rightHipAngle);
         }
     }
@@ -140,7 +255,7 @@ export class Squat extends Exercise {
 
     determineAngleState(angle, validAngles) {
         for (const [stateName, range] of Object.entries(validAngles)) {
-            if (angle >= range.start && angle <= range.end) {
+            if (angle >= range[0] && angle <= range[1]) {
                 return stateName;
             }
         }

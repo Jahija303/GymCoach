@@ -131,3 +131,10 @@ h1 {
   background-color: #ffcccc !important;
   color: #cc0000;
 }
+
+#angle-graph-canvas {
+  width: var(--video-width);
+  height: var(--video-height);
+  background: #000;
+  border: 1px solid #555;
+}

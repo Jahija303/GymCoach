@@ -70,9 +70,9 @@ function startPoseCapture(video, camera, index) {
                 pose.drawPoseLandmarks(results, index);
                 three.drawStickman3D(results?.landmarks[0], camera.color, index);
 
-                // if (frameCount % 9 === 0 && currentExercise) {
-                //   currentExercise.validate(results);
-                // }
+                if (frameCount % 3 === 0 && currentExercise) {
+                    currentExercise.validate(results);
+                }
 
                 frameCount++;
                 // const tableId = camera.label
