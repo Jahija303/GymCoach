@@ -219,7 +219,7 @@ export class Squat extends Exercise {
         const legDrop = this.baselineAngles.leg - currentAngles.leg;
 
         if (hipDrop >= this.MOVEMENT_START_THRESHOLD && legDrop >= this.MOVEMENT_START_THRESHOLD) {
-            this.movementStartTime = Date.now();
+            this.movementStartTime = Date.now() - this.startTime; // Use relative time consistent with angle history
             this.isMovementActive = true;
             this.movementAngleHistory = { leg: [], hip: [] };
             this.tempoWarningShown = false;
@@ -243,7 +243,7 @@ export class Squat extends Exercise {
         const legDiff = Math.abs(this.baselineAngles.leg - currentAngles.leg);
 
         if (hipDiff <= this.MOVEMENT_END_THRESHOLD && legDiff <= this.MOVEMENT_END_THRESHOLD) {
-            this.movementEndTime = Date.now();
+            this.movementEndTime = Date.now() - this.startTime; // Use relative time consistent with angle history
             this.lastMovementDuration = this.movementEndTime - this.movementStartTime;
             this.isMovementActive = false;
             
@@ -251,19 +251,21 @@ export class Squat extends Exercise {
                 this.movementStatusElement.textContent = "Complete";
                 this.movementStatusElement.className = "status-value good";
             }
-            
+
             this.validateMovementTempo();
+            this.validateFormScore();
 
             this.baselineAngles.hip = null;
             this.baselineAngles.leg = null;
+            this.movementAngleHistory = { leg: [], hip: [] };
 
             setTimeout(() => {
                 if (this.movementStatusElement) {
                     this.movementStatusElement.textContent = "Ready";
                     this.movementStatusElement.className = "status-value";
                 }
-            }, 2000);
-            
+            }, 1000);
+
             return true;
         }
 
@@ -288,6 +290,65 @@ export class Squat extends Exercise {
             } else {
                 this.tempoStatusElement.textContent = `${seconds}s (good)`;
                 this.tempoStatusElement.className = "status-value good";
+            }
+        }
+    }
+
+    validateFormScore() {
+        if (!this.movementAngleHistory.hip.length || !this.movementAngleHistory.leg.length) {
+            return;
+        }
+
+        let totalHipError = 0;
+        let totalLegError = 0;
+        let hipSampleCount = 0;
+        let legSampleCount = 0;
+
+        // Calculate average error for hip angles
+        this.movementAngleHistory.hip.forEach(point => {
+            const relativeTime = (point.time - this.movementStartTime) / 1000; // Convert to seconds
+            if (relativeTime >= 0 && relativeTime <= 3) { // Only within 3-second exercise window
+                const idealHipAngle = this.interpolateTemplateAngle(PROPER_SQUAT_FORM_HIP_ANGLES_IN_TIME, relativeTime);
+                const error = Math.abs(point.angle - idealHipAngle);
+                totalHipError += error;
+                hipSampleCount++;
+            }
+        });
+
+        // Calculate average error for leg angles
+        this.movementAngleHistory.leg.forEach(point => {
+            const relativeTime = (point.time - this.movementStartTime) / 1000; // Convert to seconds
+            if (relativeTime >= 0 && relativeTime <= 3) { // Only within 3-second exercise window
+                const idealLegAngle = this.interpolateTemplateAngle(PROPER_SQUAT_FORM_KNEE_ANGLES_IN_TIME, relativeTime);
+                const error = Math.abs(point.angle - idealLegAngle);
+                totalLegError += error;
+                legSampleCount++;
+            }
+        });
+
+        if (hipSampleCount === 0 || legSampleCount === 0) {
+            return;
+        }
+
+        // Calculate average errors
+        const avgHipError = totalHipError / hipSampleCount;
+        const avgLegError = totalLegError / legSampleCount;
+        const avgTotalError = (avgHipError + avgLegError) / 2;
+
+        // Convert error to score (0-100 scale, where lower error = higher score)
+        // Assuming max reasonable error is 30 degrees
+        const maxError = 30;
+        const score = Math.max(0, Math.round(100 - (avgTotalError / maxError) * 100));
+
+        // Update form score display
+        if (this.formScoreElement) {
+            this.formScoreElement.textContent = `${score}%`;
+            if (score >= 80) {
+                this.formScoreElement.className = "status-value good";
+            } else if (score >= 60) {
+                this.formScoreElement.className = "status-value warning";
+            } else {
+                this.formScoreElement.className = "status-value error";
             }
         }
     }
@@ -516,12 +577,21 @@ export class Squat extends Exercise {
         const rightLegAngle = this.calculateAngle2D(rightHip, rightKnee, rightAnkle);
         const leftHipAngle = this.calculateAngle2D(leftShoulder, leftHip, leftKnee);
         const rightHipAngle = this.calculateAngle2D(rightShoulder, rightHip, rightKnee);
+        
         const currentAngles = {
             leftLeg: leftLegAngle || 0,
             rightLeg: rightLegAngle || 0,
             leftHip: leftHipAngle || 0,
             rightHip: rightHipAngle || 0
         };
+
+        // Skip processing if all angles are invalid (0)
+        const hasValidLeftSide = currentAngles.leftLeg > 0 && currentAngles.leftHip > 0;
+        const hasValidRightSide = currentAngles.rightLeg > 0 && currentAngles.rightHip > 0;
+        
+        if (!hasValidLeftSide && !hasValidRightSide) {
+            return false;
+        }
 
         this.updateAngleGraph(currentAngles);
     }
