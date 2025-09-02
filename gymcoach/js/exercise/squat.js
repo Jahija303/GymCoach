@@ -169,13 +169,11 @@ export class Squat extends Exercise {
         this.angleHistory.leg.push({ time: currentTime, angle: selectedSide.leg });
         this.angleHistory.hip.push({ time: currentTime, angle: selectedSide.hip });
 
-        // If movement is active, also track in movement-specific history
         if (this.isMovementActive) {
             this.movementAngleHistory.leg.push({ time: currentTime, angle: selectedSide.leg });
             this.movementAngleHistory.hip.push({ time: currentTime, angle: selectedSide.hip });
         }
 
-        // Remove old data points (keep last 3 seconds)
         Object.keys(this.angleHistory).forEach(key => {
             this.angleHistory[key] = this.angleHistory[key].filter(
                 point => currentTime - point.time <= this.graphSettings.maxTime
@@ -239,7 +237,6 @@ export class Squat extends Exercise {
     detectMovementEnd(currentAngles) {
         if (!this.isMovementActive) return false;
 
-        // Check if user has returned close to baseline angles
         const hipDiff = Math.abs(this.baselineAngles.hip - currentAngles.hip);
         const legDiff = Math.abs(this.baselineAngles.leg - currentAngles.leg);
 
@@ -254,7 +251,7 @@ export class Squat extends Exercise {
             }
             
             this.validateMovementTempo();
-            this.analyzeMovementForm();
+            this.visualizeMovementForm();
             
             this.baselineAngles.hip = null;
             this.baselineAngles.leg = null;
@@ -279,7 +276,7 @@ export class Squat extends Exercise {
 
     validateMovementTempo() {
         const seconds = (this.lastMovementDuration / 1000).toFixed(1);
-        
+
         if (this.tempoStatusElement) {
             if (this.lastMovementDuration > this.IDEAL_MOVEMENT_DURATION) {
                 this.tempoStatusElement.textContent = `${seconds}s (too slow)`;
@@ -294,161 +291,8 @@ export class Squat extends Exercise {
         }
     }
 
-    analyzeMovementForm() {
-        if (this.movementAngleHistory.hip.length < 5 || this.movementAngleHistory.leg.length < 5) {
-            if (this.formScoreElement) {
-                this.formScoreElement.textContent = "Insufficient data";
-                this.formScoreElement.className = "status-value warning";
-            }
-            return;
-        }
-
-        const scaleFactor = this.lastMovementDuration / this.IDEAL_MOVEMENT_DURATION;
-        this.compareWithTemplate(scaleFactor);
-    }
-
-    compareWithTemplate(scaleFactor) {
-        const scaledHipTemplate = PROPER_SQUAT_FORM_HIP_ANGLES_IN_TIME.map(point => ({
-            time: point.time * scaleFactor * 1000, // Convert to milliseconds
-            angle: point.angle
-        }));
-
-        const scaledLegTemplate = PROPER_SQUAT_FORM_KNEE_ANGLES_IN_TIME.map(point => ({
-            time: point.time * scaleFactor * 1000,
-            angle: point.angle
-        }));
-
-        // Compare user movement with scaled template
-        let hipFormScore = 0;
-        let legFormScore = 0;
-        let totalComparisons = 0;
-
-        const sampleInterval = this.lastMovementDuration / 10; // 10 sample points
-        
-        for (let i = 0; i <= 10; i++) {
-            const sampleTime = i * sampleInterval;
-            const userHipAngle = this.interpolateAngleAtTime(this.movementAngleHistory.hip, sampleTime);
-            const userLegAngle = this.interpolateAngleAtTime(this.movementAngleHistory.leg, sampleTime);
-            
-            const templateHipAngle = this.interpolateTemplateAngleAtTime(scaledHipTemplate, sampleTime);
-            const templateLegAngle = this.interpolateTemplateAngleAtTime(scaledLegTemplate, sampleTime);
-
-            if (userHipAngle !== null && templateHipAngle !== null) {
-                const hipDiff = Math.abs(userHipAngle - templateHipAngle);
-                hipFormScore += Math.max(0, 20 - hipDiff); // Max 20 points per sample, decreasing with difference
-                totalComparisons++;
-            }
-
-            if (userLegAngle !== null && templateLegAngle !== null) {
-                const legDiff = Math.abs(userLegAngle - templateLegAngle);
-                legFormScore += Math.max(0, 20 - legDiff);
-            }
-        }
-
-        const avgHipScore = totalComparisons > 0 ? hipFormScore / totalComparisons : 0;
-        const avgLegScore = totalComparisons > 0 ? legFormScore / totalComparisons : 0;
-        const overallScore = (avgHipScore + avgLegScore) / 2;
-
-        if (this.formScoreElement) {
-            const scorePercentage = Math.round((overallScore / 20) * 100);
-            this.formScoreElement.textContent = `${scorePercentage}%`;
-            
-            if (overallScore >= 15) {
-                this.formScoreElement.className = "status-value good";
-            } else if (overallScore >= 10) {
-                this.formScoreElement.className = "status-value warning";
-            } else {
-                this.formScoreElement.className = "status-value error";
-            }
-        }
-    }
-
-    interpolateAngleAtTime(angleHistory, targetTime) {
-        if (angleHistory.length === 0) return null;
-
-        // Find the two points that bracket the target time
-        let before = null, after = null;
-        
-        for (let i = 0; i < angleHistory.length; i++) {
-            const point = angleHistory[i];
-            const relativeTime = point.time - this.movementStartTime;
-            
-            if (relativeTime <= targetTime) {
-                before = { ...point, relativeTime };
-            } else {
-                after = { ...point, relativeTime };
-                break;
-            }
-        }
-
-        if (!before) return after ? after.angle : null;
-        if (!after) return before.angle;
-
-        // Linear interpolation
-        const timeDiff = after.relativeTime - before.relativeTime;
-        const angleDiff = after.angle - before.angle;
-        const timeRatio = (targetTime - before.relativeTime) / timeDiff;
-        
-        return before.angle + (angleDiff * timeRatio);
-    }
-
-    interpolateTemplateAngleAtTime(template, targetTime) {
-        // Find the two template points that bracket the target time
-        let before = null, after = null;
-        
-        for (let i = 0; i < template.length; i++) {
-            if (template[i].time <= targetTime) {
-                before = template[i];
-            } else {
-                after = template[i];
-                break;
-            }
-        }
-
-        if (!before) return after ? after.angle : null;
-        if (!after) return before.angle;
-
-        // Linear interpolation
-        const timeDiff = after.time - before.time;
-        const angleDiff = after.angle - before.angle;
-        const timeRatio = (targetTime - before.time) / timeDiff;
-        
-        return before.angle + (angleDiff * timeRatio);
-    }
-
-    resetMovementTracking() {
-        this.movementStartTime = null;
-        this.movementEndTime = null;
-        this.isMovementActive = false;
-        this.baselineAngles = { hip: null, leg: null };
-        this.movementAngleHistory = { leg: [], hip: [] };
-        this.lastMovementDuration = null;
-        this.tempoWarningShown = false;
-        
-        // Reset UI elements
-        if (this.movementStatusElement) {
-            this.movementStatusElement.textContent = "Ready";
-            this.movementStatusElement.className = "status-value";
-        }
-        if (this.formScoreElement) {
-            this.formScoreElement.textContent = "-";
-            this.formScoreElement.className = "status-value";
-        }
-        if (this.tempoStatusElement) {
-            this.tempoStatusElement.textContent = "-";
-            this.tempoStatusElement.className = "status-value";
-        }
-    }
-
-    getMovementStatus() {
-        return {
-            isActive: this.isMovementActive,
-            startTime: this.movementStartTime,
-            endTime: this.movementEndTime,
-            duration: this.lastMovementDuration,
-            baseline: this.baselineAngles,
-            hasData: this.movementAngleHistory.hip.length > 0
-        };
+    visualizeMovementForm() {
+        // todo
     }
 
     drawGraph() {
@@ -458,8 +302,8 @@ export class Squat extends Exercise {
         const canvas = this.graphCanvas;
         const currentTime = Date.now() - this.startTime;
 
-        // this.drawTemplateLine(ctx, canvas, PROPER_SQUAT_FORM_HIP_ANGLES_IN_TIME, this.graphSettings.colors.hip);
-        // this.drawTemplateLine(ctx, canvas, PROPER_SQUAT_FORM_KNEE_ANGLES_IN_TIME, this.graphSettings.colors.leg);
+        this.drawTemplateLine(ctx, canvas, PROPER_SQUAT_FORM_HIP_ANGLES_IN_TIME, this.graphSettings.colors.hip);
+        this.drawTemplateLine(ctx, canvas, PROPER_SQUAT_FORM_KNEE_ANGLES_IN_TIME, this.graphSettings.colors.leg);
 
         Object.keys(this.angleHistory).forEach(angleType => {
             const data = this.angleHistory[angleType];
@@ -494,51 +338,85 @@ export class Squat extends Exercise {
         ctx.beginPath();
         
         const currentTime = Date.now() - this.startTime;
-        const templateCycleDuration = 3000; // 3 seconds in milliseconds
-        const totalCycleDuration = templateCycleDuration + this.templatePauseDuration; // Include pause
+        const templateCycleDuration = 3000; // 3 seconds for template pattern
+        const pauseDuration = 2000; // 2 seconds pause at 175 degrees
+        const totalCycleDuration = templateCycleDuration + pauseDuration;
         
-        // Calculate how many cycles we need to cover the visible time window
-        const visibleTimeStart = currentTime - this.graphSettings.maxTime;
+        // Calculate visible time window
+        const visibleTimeStart = Math.max(0, currentTime - this.graphSettings.maxTime);
         const visibleTimeEnd = currentTime;
         
-        // Find the first cycle that could be visible
-        const firstCycle = Math.floor(visibleTimeStart / totalCycleDuration);
-        const lastCycle = Math.ceil(visibleTimeEnd / totalCycleDuration) + 1;
+        // Generate continuous points for the visible time window
+        const points = [];
+        const sampleInterval = 50; // Sample every 50ms for smooth line
         
-        let firstPoint = true;
-        
-        for (let cycle = firstCycle; cycle <= lastCycle; cycle++) {
-            const cycleStartTime = cycle * totalCycleDuration;
-            const cycleEndTime = cycleStartTime + templateCycleDuration;
+        for (let time = visibleTimeStart; time <= visibleTimeEnd; time += sampleInterval) {
+            const cyclePosition = time % totalCycleDuration;
+            let angle;
             
-            templateData.forEach((point, index) => {
-                // Calculate the absolute time for this point in this cycle
-                const absoluteTime = cycleStartTime + (point.time * 1000);
-                
-                // Only draw if we're within the active part of the cycle (not during pause)
-                if (absoluteTime >= cycleStartTime && absoluteTime <= cycleEndTime) {
-                    // Convert to canvas x position (same logic as user data)
-                    const x = ((currentTime - absoluteTime) / this.graphSettings.maxTime) * canvas.width;
-                    const adjustedX = canvas.width - x; // Reverse x to show newest data on right
-                    
-                    // Only draw if the point is within the visible time window
-                    if (adjustedX >= -10 && adjustedX <= canvas.width + 10) { // Small buffer for smooth transitions
-                        const y = canvas.height - ((point.angle - this.graphSettings.minAngle) / 
-                                 (this.graphSettings.maxAngle - this.graphSettings.minAngle)) * canvas.height;
-                        
-                        if (firstPoint) {
-                            ctx.moveTo(adjustedX, y);
-                            firstPoint = false;
-                        } else {
-                            ctx.lineTo(adjustedX, y);
-                        }
-                    }
-                }
-            });
+            if (cyclePosition <= templateCycleDuration) {
+                // During template pattern (0-3000ms): interpolate from template data
+                const normalizedTime = cyclePosition / 1000; // Convert to seconds (0-3)
+                angle = this.interpolateTemplateAngle(templateData, normalizedTime);
+            } else {
+                // During pause (3000-5000ms): stay at 180 degrees
+                angle = 175;
+            }
+            
+            points.push({ time, angle });
         }
+        
+        // Draw the continuous line
+        let firstPoint = true;
+        points.forEach(point => {
+            const x = ((currentTime - point.time) / this.graphSettings.maxTime) * canvas.width;
+            const adjustedX = canvas.width - x; // Reverse x to show newest data on right
+            const y = canvas.height - ((point.angle - this.graphSettings.minAngle) / 
+                     (this.graphSettings.maxAngle - this.graphSettings.minAngle)) * canvas.height;
+            
+            // Only draw points within canvas bounds
+            if (adjustedX >= 0 && adjustedX <= canvas.width) {
+                if (firstPoint) {
+                    ctx.moveTo(adjustedX, y);
+                    firstPoint = false;
+                } else {
+                    ctx.lineTo(adjustedX, y);
+                }
+            }
+        });
         
         ctx.stroke();
         ctx.setLineDash([]); // Reset to solid line for subsequent drawings
+    }
+
+    interpolateTemplateAngle(templateData, targetTime) {
+        if (templateData.length === 0) return 180;
+        if (templateData.length === 1) return templateData[0].angle;
+
+        // Handle edge cases
+        if (targetTime <= templateData[0].time) return templateData[0].angle;
+        if (targetTime >= templateData[templateData.length - 1].time) return templateData[templateData.length - 1].angle;
+
+        // Find bracketing points
+        let before = null;
+        let after = null;
+        
+        for (let i = 0; i < templateData.length - 1; i++) {
+            if (templateData[i].time <= targetTime && templateData[i + 1].time >= targetTime) {
+                before = templateData[i];
+                after = templateData[i + 1];
+                break;
+            }
+        }
+
+        if (!before || !after) return 180;
+
+        // Linear interpolation
+        const timeDiff = after.time - before.time;
+        if (timeDiff === 0) return before.angle;
+        
+        const progress = (targetTime - before.time) / timeDiff;
+        return before.angle + (after.angle - before.angle) * progress;
     }
 
     validate(results) {
