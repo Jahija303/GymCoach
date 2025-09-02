@@ -62,6 +62,7 @@ export class Squat extends Exercise {
         this.lastMovementDuration = null;
         this.tempoWarningShown = false;
         this.templatePauseDuration = 2000; // 2 seconds pause between template cycles
+        this.isVisualizingForm = false; // Flag to control form visualization
 
         this.STANDING_HIP_RANGE = [170, 180];
         this.STANDING_LEG_RANGE = [170, 180];
@@ -227,7 +228,8 @@ export class Squat extends Exercise {
                 this.movementStatusElement.textContent = "Active";
                 this.movementStatusElement.className = "status-value active";
             }
-            
+
+            this.isVisualizingForm = true;
             return true;
         }
 
@@ -251,8 +253,7 @@ export class Squat extends Exercise {
             }
             
             this.validateMovementTempo();
-            this.visualizeMovementForm();
-            
+
             this.baselineAngles.hip = null;
             this.baselineAngles.leg = null;
 
@@ -291,16 +292,17 @@ export class Squat extends Exercise {
         }
     }
 
-    visualizeMovementForm() {
-        // todo
-    }
-
     drawGraph() {
         this.drawGraphBackground();
 
         const ctx = this.graphCtx;
         const canvas = this.graphCanvas;
         const currentTime = Date.now() - this.startTime;
+
+        if (this.isVisualizingForm && this.angleHistory.hip.length > 1 && this.angleHistory.leg.length > 1) {
+            this.drawFormDifferenceArea(ctx, canvas, currentTime, 'hip');
+            this.drawFormDifferenceArea(ctx, canvas, currentTime, 'leg');
+        }
 
         this.drawTemplateLine(ctx, canvas, PROPER_SQUAT_FORM_HIP_ANGLES_IN_TIME, this.graphSettings.colors.hip);
         this.drawTemplateLine(ctx, canvas, PROPER_SQUAT_FORM_KNEE_ANGLES_IN_TIME, this.graphSettings.colors.leg);
@@ -329,6 +331,79 @@ export class Squat extends Exercise {
             
             ctx.stroke();
         });
+    }
+
+    drawFormDifferenceArea(ctx, canvas, currentTime, angleType) {
+        const userData = this.angleHistory[angleType];
+        if (userData.length < 2) return;
+
+        const templateData = angleType === 'hip' ? PROPER_SQUAT_FORM_HIP_ANGLES_IN_TIME : PROPER_SQUAT_FORM_KNEE_ANGLES_IN_TIME;
+        const color = this.graphSettings.colors[angleType];
+        
+        // Set up fill style with transparency
+        ctx.fillStyle = color + '40'; // Add alpha channel for transparency
+        ctx.beginPath();
+
+        // Create arrays to store the path points
+        const userPoints = [];
+        const templatePoints = [];
+
+        // Calculate points for user data
+        userData.forEach(point => {
+            const x = ((currentTime - point.time) / this.graphSettings.maxTime) * canvas.width;
+            const adjustedX = canvas.width - x;
+            const y = canvas.height - ((point.angle - this.graphSettings.minAngle) / 
+                     (this.graphSettings.maxAngle - this.graphSettings.minAngle)) * canvas.height;
+            
+            if (adjustedX >= 0 && adjustedX <= canvas.width) {
+                userPoints.push({ x: adjustedX, y, time: point.time });
+            }
+        });
+
+        // Calculate corresponding template points
+        userPoints.forEach(userPoint => {
+            const relativeTime = (currentTime - userPoint.time) / 1000; // Convert to seconds
+            const templateCycleDuration = 3000;
+            const pauseDuration = 2000;
+            const totalCycleDuration = templateCycleDuration + pauseDuration;
+            
+            const cyclePosition = userPoint.time % totalCycleDuration;
+            let templateAngle;
+            
+            if (cyclePosition <= templateCycleDuration) {
+                const normalizedTime = cyclePosition / 1000;
+                templateAngle = this.interpolateTemplateAngle(templateData, normalizedTime);
+            } else {
+                templateAngle = 175;
+            }
+            
+            const templateY = canvas.height - ((templateAngle - this.graphSettings.minAngle) / 
+                             (this.graphSettings.maxAngle - this.graphSettings.minAngle)) * canvas.height;
+            
+            templatePoints.push({ x: userPoint.x, y: templateY });
+        });
+
+        // Draw the filled area between user and template lines
+        if (userPoints.length > 1 && templatePoints.length > 1) {
+            ctx.beginPath();
+            
+            // Start with the first user point
+            ctx.moveTo(userPoints[0].x, userPoints[0].y);
+            
+            // Draw along user line
+            for (let i = 1; i < userPoints.length; i++) {
+                ctx.lineTo(userPoints[i].x, userPoints[i].y);
+            }
+            
+            // Draw back along template line (in reverse)
+            for (let i = templatePoints.length - 1; i >= 0; i--) {
+                ctx.lineTo(templatePoints[i].x, templatePoints[i].y);
+            }
+            
+            // Close the path
+            ctx.closePath();
+            ctx.fill();
+        }
     }
 
     drawTemplateLine(ctx, canvas, templateData, color) {
