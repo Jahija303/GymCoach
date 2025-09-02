@@ -3,41 +3,41 @@ import { LANDMARK } from '../util/landmark_reader.js';
 import { CANVAS_HEIGHT, CANVAS_WIDTH } from '../util/pose.js';
 
 const PROPER_SQUAT_FORM_HIP_ANGLES_IN_TIME = [
-    { time: 0.0, angle: 178 },    // Standing position (165-180 range)
-    { time: 0.2, angle: 172 },    // Start of descent
-    { time: 0.4, angle: 160 },    // Early descent (quarterSquat: 140-165)
-    { time: 0.6, angle: 150 },    // Quarter squat
-    { time: 0.8, angle: 130 },    // Half squat (110-140 range)
-    { time: 1.0, angle: 110 },    // Entering deep squat
-    { time: 1.2, angle: 90 },     // Deep squat (85-110 range)
-    { time: 1.4, angle: 75 },     // Bottom position (70-85 range)
-    { time: 1.6, angle: 90 },     // Start ascent
-    { time: 1.8, angle: 110 },    // Early ascent
-    { time: 2.0, angle: 130 },    // Half way up
-    { time: 2.2, angle: 150 },    // Quarter position
-    { time: 2.4, angle: 160 },    // Near top
-    { time: 2.6, angle: 172 },    // Almost standing
-    { time: 2.8, angle: 178 },    // Return to standing
-    { time: 3.0, angle: 178 }     // Standing position
+    { time: 0.0, angle: 175 },    // Standing position - nearly straight trunk
+    { time: 0.2, angle: 170 },    // Start of descent - slight forward lean
+    { time: 0.4, angle: 155 },    // Early descent - trunk begins forward lean
+    { time: 0.6, angle: 135 },    // Quarter squat - moderate forward lean
+    { time: 0.8, angle: 110 },    // Half squat - increased trunk flexion
+    { time: 1.0, angle: 85 },     // Deep squat approach
+    { time: 1.2, angle: 65 },     // Near bottom - significant trunk lean
+    { time: 1.4, angle: 55 },     // Bottom position - max trunk flexion (45-60° range)
+    { time: 1.5, angle: 65 },     // Start ascent - quick transition
+    { time: 1.7, angle: 85 },     // Early ascent - faster than descent
+    { time: 1.9, angle: 110 },    // Mid ascent
+    { time: 2.1, angle: 135 },    // Quarter up
+    { time: 2.3, angle: 155 },    // Near top
+    { time: 2.5, angle: 170 },    // Almost standing
+    { time: 2.7, angle: 175 },    // Return to standing
+    { time: 3.0, angle: 175 }     // Standing position
 ];
 
 const PROPER_SQUAT_FORM_KNEE_ANGLES_IN_TIME = [
-    { time: 0.0, angle: 178 },    // Standing position (170-180 range)
-    { time: 0.2, angle: 172 },    // Start of descent
-    { time: 0.4, angle: 165 },    // Early descent (quarterSquat: 145-170)
-    { time: 0.6, angle: 155 },    // Quarter squat
-    { time: 0.8, angle: 140 },    // Half squat (120-145 range)
-    { time: 1.0, angle: 125 },    // Entering deep squat
-    { time: 1.2, angle: 105 },    // Deep squat (90-120 range)
-    { time: 1.4, angle: 80 },     // Bottom position (70-90 range)
-    { time: 1.6, angle: 105 },    // Start ascent
-    { time: 1.8, angle: 125 },    // Early ascent
-    { time: 2.0, angle: 140 },    // Half way up
-    { time: 2.2, angle: 155 },    // Quarter position
-    { time: 2.4, angle: 165 },    // Near top
-    { time: 2.6, angle: 172 },    // Almost standing
-    { time: 2.8, angle: 178 },    // Return to standing
-    { time: 3.0, angle: 178 }     // Standing position
+    { time: 0.0, angle: 175 },    // Standing position - nearly straight legs
+    { time: 0.2, angle: 170 },    // Start of descent - slight knee bend
+    { time: 0.4, angle: 155 },    // Early descent - moderate knee flexion
+    { time: 0.6, angle: 135 },    // Quarter squat - 45° knee bend
+    { time: 0.8, angle: 115 },    // Half squat - significant flexion
+    { time: 1.0, angle: 95 },     // Deep squat approach
+    { time: 1.2, angle: 85 },     // Near bottom - deep knee bend
+    { time: 1.4, angle: 75 },     // Bottom position - max knee flexion (70-80° range)
+    { time: 1.5, angle: 85 },     // Start ascent - quick transition
+    { time: 1.7, angle: 95 },     // Early ascent - faster than descent
+    { time: 1.9, angle: 115 },    // Mid ascent
+    { time: 2.1, angle: 135 },    // Quarter up
+    { time: 2.3, angle: 155 },    // Near top
+    { time: 2.5, angle: 170 },    // Almost standing
+    { time: 2.7, angle: 175 },    // Return to standing
+    { time: 3.0, angle: 175 }     // Standing position
 ];
 
 export class Squat extends Exercise {
@@ -63,16 +63,16 @@ export class Squat extends Exercise {
         this.tempoWarningShown = false;
         this.templatePauseDuration = 2000; // 2 seconds pause between template cycles
 
-        this.STANDING_HIP_RANGE = [165, 180];
-        this.STANDING_LEG_RANGE = [165, 180];
-        this.MOVEMENT_START_THRESHOLD = 15; // degrees below standing position
-        this.MOVEMENT_END_THRESHOLD = 15;    // degrees from baseline to consider "returned"
+        this.STANDING_HIP_RANGE = [170, 180];
+        this.STANDING_LEG_RANGE = [170, 180];
+        this.MOVEMENT_START_THRESHOLD = 10; // degrees below standing position
+        this.MOVEMENT_END_THRESHOLD = 10;    // degrees from baseline to consider "returned"
         this.IDEAL_MOVEMENT_DURATION = 3000; // 3 seconds in milliseconds
 
         this.movementStatusElement = document.getElementById('movement-status');
         this.formScoreElement = document.getElementById('form-score');
         this.tempoStatusElement = document.getElementById('tempo-status');
-        
+
         this.initializeAngleGraph();
     }
 
@@ -84,12 +84,10 @@ export class Squat extends Exercise {
         this.graphSettings = {
             maxTime: 3000, // 3 seconds
             maxAngle: 180,
-            minAngle: 70,
+            minAngle: 40,
             colors: {
                 leg: '#FF6B6B',
-                hip: '#4ECDC4',
-                templateLeg: '#FFA500',
-                templateHip: '#9370DB'
+                hip: '#4ECDC4'
             }
         };
 
@@ -127,15 +125,12 @@ export class Squat extends Exercise {
         ctx.fillStyle = '#fff';
         ctx.font = '12px Arial';
         ctx.fillText('180°', 5, 15);
-        ctx.fillText('70°', 5, canvas.height - 5);
+        ctx.fillText('40°', 5, canvas.height - 5);
         ctx.fillText('3s', canvas.width - 30, canvas.height - 5);
 
-        // Draw legend
         const legend = [
             { name: 'Leg', color: this.graphSettings.colors.leg },
-            { name: 'Hip', color: this.graphSettings.colors.hip },
-            { name: 'Template Leg', color: this.graphSettings.colors.templateLeg },
-            { name: 'Template Hip', color: this.graphSettings.colors.templateHip }
+            { name: 'Hip', color: this.graphSettings.colors.hip }
         ];
 
         legend.forEach((item, index) => {
@@ -462,9 +457,9 @@ export class Squat extends Exercise {
         const ctx = this.graphCtx;
         const canvas = this.graphCanvas;
         const currentTime = Date.now() - this.startTime;
-        
-        this.drawTemplateLine(ctx, canvas, PROPER_SQUAT_FORM_HIP_ANGLES_IN_TIME, this.graphSettings.colors.templateHip);
-        this.drawTemplateLine(ctx, canvas, PROPER_SQUAT_FORM_KNEE_ANGLES_IN_TIME, this.graphSettings.colors.templateLeg);
+
+        // this.drawTemplateLine(ctx, canvas, PROPER_SQUAT_FORM_HIP_ANGLES_IN_TIME, this.graphSettings.colors.hip);
+        // this.drawTemplateLine(ctx, canvas, PROPER_SQUAT_FORM_KNEE_ANGLES_IN_TIME, this.graphSettings.colors.leg);
 
         Object.keys(this.angleHistory).forEach(angleType => {
             const data = this.angleHistory[angleType];
