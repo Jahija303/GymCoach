@@ -61,8 +61,14 @@ export class Squat extends Exercise {
         };
         this.lastMovementDuration = null;
         this.tempoWarningShown = false;
-        this.templatePauseDuration = 2000; // 2 seconds pause between template cycles
-        this.isVisualizingForm = false; // Flag to control form visualization
+        this.drawnTemplateLines = {
+            hip: [],
+            leg: []
+        };
+        this.templateProgress = {
+            hip: 0,
+            leg: 0
+        };
 
         this.STANDING_HIP_RANGE = [170, 180];
         this.STANDING_LEG_RANGE = [170, 180];
@@ -180,6 +186,12 @@ export class Squat extends Exercise {
                 point => currentTime - point.time <= this.graphSettings.maxTime
             );
         });
+
+        Object.keys(this.drawnTemplateLines).forEach(key => {
+            this.drawnTemplateLines[key] = this.drawnTemplateLines[key].filter(
+                point => currentTime - point.time <= this.graphSettings.maxTime
+            );
+        });
         
         this.drawGraph();
     }
@@ -223,13 +235,19 @@ export class Squat extends Exercise {
             this.isMovementActive = true;
             this.movementAngleHistory = { leg: [], hip: [] };
             this.tempoWarningShown = false;
+            this.drawnTemplateLines = {
+                hip: [],
+                leg: []
+            };
+            this.templateProgress = {
+                hip: 0,
+                leg: 0
+            };
 
             if (this.movementStatusElement) {
                 this.movementStatusElement.textContent = "Active";
                 this.movementStatusElement.className = "status-value active";
             }
-
-            this.isVisualizingForm = true;
             return true;
         }
 
@@ -246,14 +264,14 @@ export class Squat extends Exercise {
             this.movementEndTime = Date.now() - this.startTime; // Use relative time consistent with angle history
             this.lastMovementDuration = this.movementEndTime - this.movementStartTime;
             this.isMovementActive = false;
-            
+
             if (this.movementStatusElement) {
                 this.movementStatusElement.textContent = "Complete";
                 this.movementStatusElement.className = "status-value good";
             }
 
-            this.validateMovementTempo();
-            this.validateFormScore();
+            // this.validateMovementTempo();
+            // this.validateFormScore();
 
             this.baselineAngles.hip = null;
             this.baselineAngles.leg = null;
@@ -360,13 +378,18 @@ export class Squat extends Exercise {
         const canvas = this.graphCanvas;
         const currentTime = Date.now() - this.startTime;
 
-        if (this.isVisualizingForm && this.angleHistory.hip.length > 1 && this.angleHistory.leg.length > 1) {
-            this.drawFormDifferenceArea(ctx, canvas, currentTime, 'hip');
-            this.drawFormDifferenceArea(ctx, canvas, currentTime, 'leg');
+        // if (this.isMovementActive && this.angleHistory.hip.length > 1 && this.angleHistory.leg.length > 1) {
+        //     this.drawFormDifferenceArea(ctx, canvas, currentTime, 'hip');
+        //     this.drawFormDifferenceArea(ctx, canvas, currentTime, 'leg');
+        // }
+
+        // Draw template lines progressively when movement is active
+        if (this.isMovementActive) {
+            this.drawProgressiveTemplateLine(PROPER_SQUAT_FORM_KNEE_ANGLES_IN_TIME, 'leg');
+            this.drawProgressiveTemplateLine(PROPER_SQUAT_FORM_HIP_ANGLES_IN_TIME, 'hip');
         }
 
-        this.drawTemplateLine(ctx, canvas, PROPER_SQUAT_FORM_HIP_ANGLES_IN_TIME, this.graphSettings.colors.hip);
-        this.drawTemplateLine(ctx, canvas, PROPER_SQUAT_FORM_KNEE_ANGLES_IN_TIME, this.graphSettings.colors.leg);
+        this.drawStoredTemplateLines(ctx, canvas);
 
         Object.keys(this.angleHistory).forEach(angleType => {
             const data = this.angleHistory[angleType];
@@ -375,7 +398,7 @@ export class Squat extends Exercise {
             ctx.strokeStyle = this.graphSettings.colors[angleType];
             ctx.lineWidth = 2;
             ctx.beginPath();
-            
+
             data.forEach((point, index) => {
                 const x = ((currentTime - point.time) / this.graphSettings.maxTime) * canvas.width;
                 const y = canvas.height - ((point.angle - this.graphSettings.minAngle) / 
@@ -425,9 +448,8 @@ export class Squat extends Exercise {
         userPoints.forEach(userPoint => {
             const relativeTime = (currentTime - userPoint.time) / 1000; // Convert to seconds
             const templateCycleDuration = 3000;
-            const pauseDuration = 2000;
-            const totalCycleDuration = templateCycleDuration + pauseDuration;
-            
+            const totalCycleDuration = templateCycleDuration;
+
             const cyclePosition = userPoint.time % totalCycleDuration;
             let templateAngle;
             
@@ -467,6 +489,62 @@ export class Squat extends Exercise {
         }
     }
 
+    drawProgressiveTemplateLine(templateData, angleType) {
+        const currentProgress = this.templateProgress[angleType];
+        const maxPoints = templateData.length;
+        
+        // Add one more point if we haven't drawn all points yet
+        if (currentProgress < maxPoints) {
+            const nextPoint = templateData[currentProgress];
+            const pointTime = this.movementStartTime + (nextPoint.time * 1000); // Convert template time to absolute time
+            
+            this.drawnTemplateLines[angleType].push({ time: pointTime, angle: nextPoint.angle });
+            this.templateProgress[angleType]++;
+        }
+    }
+
+    drawStoredTemplateLines(ctx, canvas) {
+        const currentTime = Date.now() - this.startTime;
+
+        if (this.drawnTemplateLines.hip.length > 0) {
+            this.drawStoredTemplateLine(ctx, canvas, this.drawnTemplateLines.hip, this.graphSettings.colors.hip, currentTime);
+        }
+
+        if (this.drawnTemplateLines.leg.length > 0) {
+            this.drawStoredTemplateLine(ctx, canvas, this.drawnTemplateLines.leg, this.graphSettings.colors.leg, currentTime);
+        }
+    }
+
+    drawStoredTemplateLine(ctx, canvas, points, color, currentTime) {
+        if (points.length < 1) return;
+        
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 1;
+        ctx.setLineDash([5, 5]); // Dashed line for template
+        ctx.beginPath();
+
+        let firstPoint = true;
+        points.forEach(point => {
+            const x = ((currentTime - point.time) / this.graphSettings.maxTime) * canvas.width;
+            const adjustedX = canvas.width - x; // Reverse x to show newest data on right
+            const y = canvas.height - ((point.angle - this.graphSettings.minAngle) / 
+                     (this.graphSettings.maxAngle - this.graphSettings.minAngle)) * canvas.height;
+
+            // Only draw points within canvas bounds
+            if (adjustedX >= 0 && adjustedX <= canvas.width) {
+                if (firstPoint) {
+                    ctx.moveTo(adjustedX, y);
+                    firstPoint = false;
+                } else {
+                    ctx.lineTo(adjustedX, y);
+                }
+            }
+        });
+
+        ctx.stroke();
+        ctx.setLineDash([]); // Reset to solid line for subsequent drawings
+    }
+
     drawTemplateLine(ctx, canvas, templateData, color) {
         ctx.strokeStyle = color;
         ctx.lineWidth = 1;
@@ -475,13 +553,11 @@ export class Squat extends Exercise {
         
         const currentTime = Date.now() - this.startTime;
         const templateCycleDuration = 3000; // 3 seconds for template pattern
-        const pauseDuration = 2000; // 2 seconds pause at 175 degrees
-        const totalCycleDuration = templateCycleDuration + pauseDuration;
-        
+        const totalCycleDuration = templateCycleDuration;
+
         // Calculate visible time window
         const visibleTimeStart = Math.max(0, currentTime - this.graphSettings.maxTime);
         const visibleTimeEnd = currentTime;
-        
         // Generate continuous points for the visible time window
         const points = [];
         const sampleInterval = 50; // Sample every 50ms for smooth line
@@ -495,7 +571,6 @@ export class Squat extends Exercise {
                 const normalizedTime = cyclePosition / 1000; // Convert to seconds (0-3)
                 angle = this.interpolateTemplateAngle(templateData, normalizedTime);
             } else {
-                // During pause (3000-5000ms): stay at 180 degrees
                 angle = 175;
             }
             
