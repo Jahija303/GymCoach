@@ -69,6 +69,10 @@ export class Squat extends Exercise {
             hip: 0,
             leg: 0
         };
+        this.storedFormDifferenceAreas = {
+            hip: [],
+            leg: []
+        };
 
         this.STANDING_HIP_RANGE = [170, 180];
         this.STANDING_LEG_RANGE = [170, 180];
@@ -179,6 +183,9 @@ export class Squat extends Exercise {
         if (this.isMovementActive) {
             this.movementAngleHistory.leg.push({ time: currentTime, angle: selectedSide.leg });
             this.movementAngleHistory.hip.push({ time: currentTime, angle: selectedSide.hip });
+
+            this.updateStoredFormDifferenceArea(currentTime, selectedSide.leg, 'leg');
+            this.updateStoredFormDifferenceArea(currentTime, selectedSide.hip, 'hip');
         }
 
         Object.keys(this.angleHistory).forEach(key => {
@@ -189,6 +196,12 @@ export class Squat extends Exercise {
 
         Object.keys(this.drawnTemplateLines).forEach(key => {
             this.drawnTemplateLines[key] = this.drawnTemplateLines[key].filter(
+                point => currentTime - point.time <= this.graphSettings.maxTime
+            );
+        });
+
+        Object.keys(this.storedFormDifferenceAreas).forEach(key => {
+            this.storedFormDifferenceAreas[key] = this.storedFormDifferenceAreas[key].filter(
                 point => currentTime - point.time <= this.graphSettings.maxTime
             );
         });
@@ -212,6 +225,21 @@ export class Squat extends Exercise {
         const rightAnkle = this.reader.getLandmark(LANDMARK.RIGHT_ANKLE);
         
         return (rightShoulder?.visibility + rightHip?.visibility + rightKnee?.visibility + rightAnkle?.visibility) / 4 || 0;
+    }
+
+    updateStoredFormDifferenceArea(currentTime, userAngle, angleType) {
+        const templateData = angleType === 'hip' ? PROPER_SQUAT_FORM_HIP_ANGLES_IN_TIME : PROPER_SQUAT_FORM_KNEE_ANGLES_IN_TIME;
+        const relativeTime = (currentTime - this.movementStartTime) / 1000; // Convert to seconds
+        
+        if (relativeTime >= 0) {
+            const templateAngle = this.interpolateTemplateAngle(templateData, relativeTime);
+            
+            this.storedFormDifferenceAreas[angleType].push({
+                time: currentTime,
+                userAngle: userAngle,
+                templateAngle: templateAngle
+            });
+        }
     }
 
     detectMovementStart(currentAngles) {
@@ -242,6 +270,10 @@ export class Squat extends Exercise {
             this.templateProgress = {
                 hip: 0,
                 leg: 0
+            };
+            this.storedFormDifferenceAreas = {
+                hip: [],
+                leg: []
             };
 
             if (this.movementStatusElement) {
@@ -378,10 +410,8 @@ export class Squat extends Exercise {
         const canvas = this.graphCanvas;
         const currentTime = Date.now() - this.startTime;
 
-        // if (this.isMovementActive && this.angleHistory.hip.length > 1 && this.angleHistory.leg.length > 1) {
-        //     this.drawFormDifferenceArea(ctx, canvas, currentTime, 'hip');
-        //     this.drawFormDifferenceArea(ctx, canvas, currentTime, 'leg');
-        // }
+        this.drawStoredFormDifferenceArea(ctx, canvas, currentTime, 'hip');
+        this.drawStoredFormDifferenceArea(ctx, canvas, currentTime, 'leg');
 
         // Draw template lines progressively when movement is active
         if (this.isMovementActive) {
@@ -417,11 +447,10 @@ export class Squat extends Exercise {
         });
     }
 
-    drawFormDifferenceArea(ctx, canvas, currentTime, angleType) {
-        const userData = this.angleHistory[angleType];
-        if (userData.length < 2) return;
+    drawStoredFormDifferenceArea(ctx, canvas, currentTime, angleType) {
+        const data = this.storedFormDifferenceAreas[angleType];
+        if (data.length < 2) return;
 
-        const templateData = angleType === 'hip' ? PROPER_SQUAT_FORM_HIP_ANGLES_IN_TIME : PROPER_SQUAT_FORM_KNEE_ANGLES_IN_TIME;
         const color = this.graphSettings.colors[angleType];
         
         // Set up fill style with transparency
@@ -432,38 +461,20 @@ export class Squat extends Exercise {
         const userPoints = [];
         const templatePoints = [];
 
-        // Calculate points for user data
-        userData.forEach(point => {
+        // Calculate points for stored data
+        data.forEach(point => {
             const x = ((currentTime - point.time) / this.graphSettings.maxTime) * canvas.width;
             const adjustedX = canvas.width - x;
-            const y = canvas.height - ((point.angle - this.graphSettings.minAngle) / 
-                     (this.graphSettings.maxAngle - this.graphSettings.minAngle)) * canvas.height;
             
             if (adjustedX >= 0 && adjustedX <= canvas.width) {
-                userPoints.push({ x: adjustedX, y, time: point.time });
-            }
-        });
-
-        // Calculate corresponding template points
-        userPoints.forEach(userPoint => {
-            const relativeTime = (currentTime - userPoint.time) / 1000; // Convert to seconds
-            const templateCycleDuration = 3000;
-            const totalCycleDuration = templateCycleDuration;
-
-            const cyclePosition = userPoint.time % totalCycleDuration;
-            let templateAngle;
-            
-            if (cyclePosition <= templateCycleDuration) {
-                const normalizedTime = cyclePosition / 1000;
-                templateAngle = this.interpolateTemplateAngle(templateData, normalizedTime);
-            } else {
-                templateAngle = 175;
-            }
-            
-            const templateY = canvas.height - ((templateAngle - this.graphSettings.minAngle) / 
+                const userY = canvas.height - ((point.userAngle - this.graphSettings.minAngle) / 
                              (this.graphSettings.maxAngle - this.graphSettings.minAngle)) * canvas.height;
-            
-            templatePoints.push({ x: userPoint.x, y: templateY });
+                const templateY = canvas.height - ((point.templateAngle - this.graphSettings.minAngle) / 
+                                 (this.graphSettings.maxAngle - this.graphSettings.minAngle)) * canvas.height;
+                
+                userPoints.push({ x: adjustedX, y: userY });
+                templatePoints.push({ x: adjustedX, y: templateY });
+            }
         });
 
         // Draw the filled area between user and template lines
