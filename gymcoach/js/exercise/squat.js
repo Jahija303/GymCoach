@@ -536,7 +536,7 @@ export class Squat extends Exercise {
         // Find bracketing points
         let before = null;
         let after = null;
-        
+
         for (let i = 0; i < templateData.length - 1; i++) {
             if (templateData[i].time <= targetTime && templateData[i + 1].time >= targetTime) {
                 before = templateData[i];
@@ -550,7 +550,7 @@ export class Squat extends Exercise {
         // Linear interpolation
         const timeDiff = after.time - before.time;
         if (timeDiff === 0) return before.angle;
-        
+
         const progress = (targetTime - before.time) / timeDiff;
         return before.angle + (after.angle - before.angle) * progress;
     }

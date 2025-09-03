@@ -116,3 +116,15 @@ progress:
 - Drawing a template graph in a better way
 - Added spheres around the keypoint angles being calculated
 - Trying to detect the start and end of the user movement and comparing the final movement to the template movement
+
+# 03.09.2025
+
+todo:
+- Update the squat validation so that the ideal movement lines start moving when the user starts moving, so we can make the comparison more accurate
+- The squat has not fixed duration, can we just set the minimum and maximum duration
+- To get a second camera as an input, we need to have a simplistic body rotation calculation based on shoulder distance
+- Then we need to decide which camera is observing from which perspective
+- The camera that is observing from the side, validates the side exercise, the front camera validates the front exercise
+- Each perspective has its own different ideal angles
+- The total score is decided based on the sum of two perspective scores
+- Render anoter graph (maybe instead of three.js) that shows the second camera perspective
