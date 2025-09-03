@@ -73,6 +73,8 @@ export class Squat extends Exercise {
             hip: [],
             leg: []
         };
+        this.movementEndTime = null;
+        this.AREA_DRAWING_DELAY = 1000; // Continue drawing area for 1 second after movement stops
 
         this.STANDING_HIP_RANGE = [170, 180];
         this.STANDING_LEG_RANGE = [170, 180];
@@ -183,7 +185,13 @@ export class Squat extends Exercise {
         if (this.isMovementActive) {
             this.movementAngleHistory.leg.push({ time: currentTime, angle: selectedSide.leg });
             this.movementAngleHistory.hip.push({ time: currentTime, angle: selectedSide.hip });
+        }
 
+        // Continue updating form difference area for a delay period after movement stops
+        const shouldUpdateArea = this.isMovementActive || 
+            (this.movementEndTime && (currentTime - this.movementEndTime) < this.AREA_DRAWING_DELAY);
+
+        if (shouldUpdateArea) {
             this.updateStoredFormDifferenceArea(currentTime, selectedSide.leg, 'leg');
             this.updateStoredFormDifferenceArea(currentTime, selectedSide.hip, 'hip');
         }
@@ -275,6 +283,7 @@ export class Squat extends Exercise {
                 hip: [],
                 leg: []
             };
+            this.movementEndTime = null; // Reset when starting new movement
 
             if (this.movementStatusElement) {
                 this.movementStatusElement.textContent = "Active";
