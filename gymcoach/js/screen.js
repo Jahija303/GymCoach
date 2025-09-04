@@ -8,7 +8,7 @@ let cameraHelper;
 let pose;
 let intervalIDs = {};
 let frameCount = 0;
-let currentExercise = null;
+let currentExercise = new Squat(); // SQUAT IS DEFAULT
 const FPS = 30;
 
 // Capture the camera stream and start pose detection
@@ -110,11 +110,11 @@ document.getElementById('exercise-select').addEventListener('change', (event) =>
             console.log('Squat selected');
             currentExercise = new Squat();
             break;
-        case 'pushup':
-            console.log('Pushup selected');
-            break;
-        case 'plank':
-            console.log('Plank selected');
-            break;
+        // case 'pushup':
+        //     console.log('Pushup selected');
+        //     break;
+        // case 'plank':
+        //     console.log('Plank selected');
+        //     break;
     }
 });

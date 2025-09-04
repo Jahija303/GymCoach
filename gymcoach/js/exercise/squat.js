@@ -74,7 +74,7 @@ export class Squat extends Exercise {
             leg: []
         };
         this.movementEndTime = null;
-        this.AREA_DRAWING_DELAY = 1000; // Continue drawing area for 1 second after movement stops
+        this.AREA_DRAWING_DELAY = 500; // Continue drawing area for 0.5 seconds after movement stops
 
         this.STANDING_HIP_RANGE = [170, 180];
         this.STANDING_LEG_RANGE = [170, 180];

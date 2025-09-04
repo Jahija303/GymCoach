@@ -128,3 +128,10 @@ todo:
 - Each perspective has its own different ideal angles
 - The total score is decided based on the sum of two perspective scores
 - Render anoter graph (maybe instead of three.js) that shows the second camera perspective
+
+# 04.09.2025
+
+todo:
+- Instead of manually defining each 0.2s angle value, can we define it as a sin function with some parameters, does this make sense ?
+- What does this mean for a form score ? How can we adaptively calculate it regardless of speed
+- Do we have a better idea for a form score
