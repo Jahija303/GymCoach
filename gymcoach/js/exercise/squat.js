@@ -2,43 +2,15 @@ import { Exercise } from './exercise.js';
 import { LANDMARK } from '../util/landmark_reader.js';
 import { CANVAS_HEIGHT, CANVAS_WIDTH } from '../util/pose.js';
 
-const PROPER_SQUAT_FORM_HIP_ANGLES_IN_TIME = [
-    { time: 0.0, angle: 175 },    // Standing position - nearly straight trunk
-    { time: 0.2, angle: 170 },    // Start of descent - slight forward lean
-    { time: 0.4, angle: 155 },    // Early descent - trunk begins forward lean
-    { time: 0.6, angle: 135 },    // Quarter squat - moderate forward lean
-    { time: 0.8, angle: 110 },    // Half squat - increased trunk flexion
-    { time: 1.0, angle: 85 },     // Deep squat approach
-    { time: 1.2, angle: 65 },     // Near bottom - significant trunk lean
-    { time: 1.4, angle: 55 },     // Bottom position - max trunk flexion (45-60° range)
-    { time: 1.5, angle: 65 },     // Start ascent - quick transition
-    { time: 1.7, angle: 85 },     // Early ascent - faster than descent
-    { time: 1.9, angle: 110 },    // Mid ascent
-    { time: 2.1, angle: 135 },    // Quarter up
-    { time: 2.3, angle: 155 },    // Near top
-    { time: 2.5, angle: 170 },    // Almost standing
-    { time: 2.7, angle: 175 },    // Return to standing
-    { time: 3.0, angle: 175 }     // Standing position
-];
+const PROPER_SQUAT_FORM_HIP_ANGLES_IN_TIME = {
+    centerAngle: 115,
+    amplitude: 60
+}
 
-const PROPER_SQUAT_FORM_KNEE_ANGLES_IN_TIME = [
-    { time: 0.0, angle: 175 },    // Standing position - nearly straight legs
-    { time: 0.2, angle: 170 },    // Start of descent - slight knee bend
-    { time: 0.4, angle: 155 },    // Early descent - moderate knee flexion
-    { time: 0.6, angle: 135 },    // Quarter squat - 45° knee bend
-    { time: 0.8, angle: 115 },    // Half squat - significant flexion
-    { time: 1.0, angle: 95 },     // Deep squat approach
-    { time: 1.2, angle: 85 },     // Near bottom - deep knee bend
-    { time: 1.4, angle: 75 },     // Bottom position - max knee flexion (70-80° range)
-    { time: 1.5, angle: 85 },     // Start ascent - quick transition
-    { time: 1.7, angle: 95 },     // Early ascent - faster than descent
-    { time: 1.9, angle: 115 },    // Mid ascent
-    { time: 2.1, angle: 135 },    // Quarter up
-    { time: 2.3, angle: 155 },    // Near top
-    { time: 2.5, angle: 170 },    // Almost standing
-    { time: 2.7, angle: 175 },    // Return to standing
-    { time: 3.0, angle: 175 }     // Standing position
-];
+const PROPER_SQUAT_FORM_KNEE_ANGLES_IN_TIME = {
+    centerAngle: 125,
+    amplitude: 50
+};
 
 export class Squat extends Exercise {
     constructor() {
@@ -191,10 +163,10 @@ export class Squat extends Exercise {
         const shouldUpdateArea = this.isMovementActive || 
             (this.movementEndTime && (currentTime - this.movementEndTime) < this.AREA_DRAWING_DELAY);
 
-        if (shouldUpdateArea) {
-            this.updateStoredFormDifferenceArea(currentTime, selectedSide.leg, 'leg');
-            this.updateStoredFormDifferenceArea(currentTime, selectedSide.hip, 'hip');
-        }
+        // if (shouldUpdateArea) {
+        //     this.updateStoredFormDifferenceArea(currentTime, selectedSide.leg, 'leg');
+        //     this.updateStoredFormDifferenceArea(currentTime, selectedSide.hip, 'hip');
+        // }
 
         Object.keys(this.angleHistory).forEach(key => {
             this.angleHistory[key] = this.angleHistory[key].filter(
@@ -236,11 +208,11 @@ export class Squat extends Exercise {
     }
 
     updateStoredFormDifferenceArea(currentTime, userAngle, angleType) {
-        const templateData = angleType === 'hip' ? PROPER_SQUAT_FORM_HIP_ANGLES_IN_TIME : PROPER_SQUAT_FORM_KNEE_ANGLES_IN_TIME;
+        const templateAngles = angleType === 'hip' ? PROPER_SQUAT_FORM_HIP_ANGLES_IN_TIME : PROPER_SQUAT_FORM_KNEE_ANGLES_IN_TIME;
         const relativeTime = (currentTime - this.movementStartTime) / 1000; // Convert to seconds
         
         if (relativeTime >= 0) {
-            const templateAngle = this.interpolateTemplateAngle(templateData, relativeTime);
+            const templateAngle = this.interpolateTemplateAngle(templateAngles, relativeTime);
             
             this.storedFormDifferenceAreas[angleType].push({
                 time: currentTime,
@@ -509,17 +481,38 @@ export class Squat extends Exercise {
         }
     }
 
-    drawProgressiveTemplateLine(templateData, angleType) {
+    drawProgressiveTemplateLine(templateAngles, angleType) {
+        const currentTime = Date.now() - this.startTime;
+        const elapsedSinceMovementStart = currentTime - this.movementStartTime;
+        const squatDuration = 3.0; // 3 seconds
+        const intervalMs = 50; // Add a point every 50ms for smooth progression
+
+        // Safety check: don't add points if movement hasn't started or is too old
+        if (elapsedSinceMovementStart < 0 || elapsedSinceMovementStart > squatDuration * 1000) {
+            return;
+        }
+
+        // Calculate how many points we should have by now based on elapsed time
+        const expectedPoints = Math.floor(elapsedSinceMovementStart / intervalMs) + 1;
         const currentProgress = this.templateProgress[angleType];
-        const maxPoints = templateData.length;
+        const maxPoints = Math.ceil((squatDuration * 1000) / intervalMs); // Maximum possible points
         
-        // Add one more point if we haven't drawn all points yet
-        if (currentProgress < maxPoints) {
-            const nextPoint = templateData[currentProgress];
-            const pointTime = this.movementStartTime + (nextPoint.time * 1000); // Convert template time to absolute time
+        // Safety check: limit the number of points we can add in one call
+        const maxPointsToAdd = 5;
+        let pointsAdded = 0;
+        
+        // Add points up to where we should be based on elapsed time
+        while (currentProgress < expectedPoints && 
+               currentProgress < maxPoints && 
+               pointsAdded < maxPointsToAdd) {
             
-            this.drawnTemplateLines[angleType].push({ time: pointTime, angle: nextPoint.angle });
+            const timeInSeconds = (currentProgress * intervalMs) / 1000; // Convert to seconds
+            const angle = this.getAngleAsymmetricSin(timeInSeconds, squatDuration, templateAngles.centerAngle, templateAngles.amplitude);
+            const pointTime = this.movementStartTime + (timeInSeconds * 1000); // Convert to absolute time
+            
+            this.drawnTemplateLines[angleType].push({ time: pointTime, angle: angle });
             this.templateProgress[angleType]++;
+            pointsAdded++;
         }
     }
 
@@ -565,14 +558,15 @@ export class Squat extends Exercise {
         ctx.setLineDash([]); // Reset to solid line for subsequent drawings
     }
 
-    drawTemplateLine(ctx, canvas, templateData, color) {
+    drawTemplateLine(ctx, canvas, templateAngles, color) {
         ctx.strokeStyle = color;
         ctx.lineWidth = 1;
         ctx.setLineDash([5, 5]); // Dashed line for template
         ctx.beginPath();
         
         const currentTime = Date.now() - this.startTime;
-        const templateCycleDuration = 3000; // 3 seconds for template pattern
+        const squatDuration = 3.0; // 3 seconds
+        const templateCycleDuration = 3000; // 3 seconds in milliseconds
         const totalCycleDuration = templateCycleDuration;
 
         // Calculate visible time window
@@ -587,9 +581,9 @@ export class Squat extends Exercise {
             let angle;
             
             if (cyclePosition <= templateCycleDuration) {
-                // During template pattern (0-3000ms): interpolate from template data
+                // During template pattern (0-3000ms): use asymmetric sin function
                 const normalizedTime = cyclePosition / 1000; // Convert to seconds (0-3)
-                angle = this.interpolateTemplateAngle(templateData, normalizedTime);
+                angle = this.getAngleAsymmetricSin(normalizedTime, squatDuration, templateAngles.centerAngle, templateAngles.amplitude);
             } else {
                 angle = 175;
             }
@@ -620,34 +614,14 @@ export class Squat extends Exercise {
         ctx.setLineDash([]); // Reset to solid line for subsequent drawings
     }
 
-    interpolateTemplateAngle(templateData, targetTime) {
-        if (templateData.length === 0) return 180;
-        if (templateData.length === 1) return templateData[0].angle;
-
-        // Handle edge cases
-        if (targetTime <= templateData[0].time) return templateData[0].angle;
-        if (targetTime >= templateData[templateData.length - 1].time) return templateData[templateData.length - 1].angle;
-
-        // Find bracketing points
-        let before = null;
-        let after = null;
-
-        for (let i = 0; i < templateData.length - 1; i++) {
-            if (templateData[i].time <= targetTime && templateData[i + 1].time >= targetTime) {
-                before = templateData[i];
-                after = templateData[i + 1];
-                break;
-            }
-        }
-
-        if (!before || !after) return 180;
-
-        // Linear interpolation
-        const timeDiff = after.time - before.time;
-        if (timeDiff === 0) return before.angle;
-
-        const progress = (targetTime - before.time) / timeDiff;
-        return before.angle + (after.angle - before.angle) * progress;
+    interpolateTemplateAngle(templateAngles, targetTime) {
+        const squatDuration = 3.0; // 3 seconds
+        
+        // Clamp targetTime to valid range
+        const clampedTime = Math.max(0, Math.min(targetTime, squatDuration));
+        
+        // Use the asymmetric sin function to get the angle at the target time
+        return this.getAngleAsymmetricSin(clampedTime, squatDuration, templateAngles.centerAngle, templateAngles.amplitude);
     }
 
     validate(results) {

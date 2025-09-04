@@ -79,4 +79,27 @@ export class Exercise {
 
         return Math.round(angleDegrees * 100) / 100;
     }
+
+    getAngleAsymmetricSin(time, duration, centerAngle, amplitude) {
+        // Scale timing proportionally
+        const descentRatio = 1.4 / 3.0;
+        const standingRatio = 2.7 / 3.0;
+        const descentTime = duration * descentRatio;
+        const standingTime = duration * standingRatio;
+        
+        let phase;
+
+        if (time <= descentTime) {
+            // Descent: map to 0-π (slower)
+            phase = Math.PI * time / descentTime;
+        } else if (time <= standingTime) {
+            // Ascent: map to π-2π (faster)
+            phase = Math.PI + Math.PI * (time - descentTime) / (standingTime - descentTime);
+        } else {
+            // Standing
+            phase = 2 * Math.PI;
+        }
+
+        return centerAngle + amplitude * Math.cos(phase);
+    }
 }
