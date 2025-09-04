@@ -259,8 +259,8 @@ export class Squat extends Exercise {
                 this.movementStatusElement.className = "status-value good";
             }
 
-            // this.validateMovementTempo();
-            // this.validateFormScore();
+            this.validateMovementTempo();
+            this.validateFormScore();
 
             this.baselineAngles.hip = null;
             this.baselineAngles.leg = null;
@@ -301,64 +301,84 @@ export class Squat extends Exercise {
         }
     }
 
-    // validateFormScore() {
-    //     if (!this.movementAngleHistory.hip.length || !this.movementAngleHistory.leg.length) {
-    //         return;
-    //     }
+    validateFormScore() {
+        if (!this.movementAngleHistory.hip.length || !this.movementAngleHistory.leg.length) {
+            return;
+        }
 
-    //     let totalHipError = 0;
-    //     let totalLegError = 0;
-    //     let hipSampleCount = 0;
-    //     let legSampleCount = 0;
+        // Use actual user movement duration
+        const userDuration = this.lastMovementDuration / 1000; // Convert to seconds
+        if (userDuration <= 0) return;
 
-    //     // Calculate average error for hip angles
-    //     this.movementAngleHistory.hip.forEach(point => {
-    //         const relativeTime = (point.time - this.movementStartTime) / 1000; // Convert to seconds
-    //         if (relativeTime >= 0 && relativeTime <= 3) { // Only within 3-second exercise window
-    //             const idealHipAngle = this.interpolateTemplateAngle(PROPER_SQUAT_FORM_HIP_ANGLES, relativeTime);
-    //             const error = Math.abs(point.angle - idealHipAngle);
-    //             totalHipError += error;
-    //             hipSampleCount++;
-    //         }
-    //     });
+        let totalHipError = 0;
+        let totalLegError = 0;
+        let hipSampleCount = 0;
+        let legSampleCount = 0;
 
-    //     // Calculate average error for leg angles
-    //     this.movementAngleHistory.leg.forEach(point => {
-    //         const relativeTime = (point.time - this.movementStartTime) / 1000; // Convert to seconds
-    //         if (relativeTime >= 0 && relativeTime <= 3) { // Only within 3-second exercise window
-    //             const idealLegAngle = this.interpolateTemplateAngle(PROPER_SQUAT_FORM_KNEE_ANGLES, relativeTime);
-    //             const error = Math.abs(point.angle - idealLegAngle);
-    //             totalLegError += error;
-    //             legSampleCount++;
-    //         }
-    //     });
+        // Calculate average error for hip angles based on user's actual duration
+        this.movementAngleHistory.hip.forEach(point => {
+            const relativeTime = (point.time - this.movementStartTime) / 1000; // Convert to seconds
+            if (relativeTime >= 0 && relativeTime <= userDuration) {
+                // Scale the relative time to match user's duration for ideal calculation
+                const idealHipAngle = this.getAngleAsymmetricSin(
+                    relativeTime, 
+                    userDuration, 
+                    PROPER_SQUAT_FORM_HIP_ANGLES.centerAngle, 
+                    PROPER_SQUAT_FORM_HIP_ANGLES.amplitude
+                );
+                const error = Math.abs(point.angle - idealHipAngle);
+                totalHipError += error;
+                hipSampleCount++;
+            }
+        });
 
-    //     if (hipSampleCount === 0 || legSampleCount === 0) {
-    //         return;
-    //     }
+        // Calculate average error for leg angles based on user's actual duration
+        this.movementAngleHistory.leg.forEach(point => {
+            const relativeTime = (point.time - this.movementStartTime) / 1000; // Convert to seconds
+            if (relativeTime >= 0 && relativeTime <= userDuration) {
+                // Scale the relative time to match user's duration for ideal calculation
+                const idealLegAngle = this.getAngleAsymmetricSin(
+                    relativeTime, 
+                    userDuration, 
+                    PROPER_SQUAT_FORM_KNEE_ANGLES.centerAngle, 
+                    PROPER_SQUAT_FORM_KNEE_ANGLES.amplitude
+                );
+                const error = Math.abs(point.angle - idealLegAngle);
+                totalLegError += error;
+                legSampleCount++;
+            }
+        });
 
-    //     // Calculate average errors
-    //     const avgHipError = totalHipError / hipSampleCount;
-    //     const avgLegError = totalLegError / legSampleCount;
-    //     const avgTotalError = (avgHipError + avgLegError) / 2;
+        if (hipSampleCount === 0 || legSampleCount === 0) {
+            return;
+        }
 
-    //     // Convert error to score (0-100 scale, where lower error = higher score)
-    //     // Assuming max reasonable error is 30 degrees
-    //     const maxError = 30;
-    //     const score = Math.max(0, Math.round(100 - (avgTotalError / maxError) * 100));
+        // Calculate average errors
+        const avgHipError = totalHipError / hipSampleCount;
+        const avgLegError = totalLegError / legSampleCount;
+        const avgTotalError = (avgHipError + avgLegError) / 2;
 
-    //     // Update form score display
-    //     if (this.formScoreElement) {
-    //         this.formScoreElement.textContent = `${score}%`;
-    //         if (score >= 80) {
-    //             this.formScoreElement.className = "status-value good";
-    //         } else if (score >= 60) {
-    //             this.formScoreElement.className = "status-value warning";
-    //         } else {
-    //             this.formScoreElement.className = "status-value error";
-    //         }
-    //     }
-    // }
+        // Convert error to score (0-100 scale, where lower error = higher score)
+        // Using a quadratic function to be less sensitive to small errors and more sensitive to large errors
+        const maxError = 30;
+        const normalizedError = Math.min(avgTotalError / maxError, 1); // Clamp to [0, 1]
+        
+        // Apply quadratic scaling: small errors are reduced, large errors are amplified
+        const scaledError = Math.pow(normalizedError, 2);
+        const score = Math.max(0, Math.round(100 - scaledError * 100));
+
+        // Update form score display
+        if (this.formScoreElement) {
+            this.formScoreElement.textContent = `${score}%`;
+            if (score >= 80) {
+                this.formScoreElement.className = "status-value good";
+            } else if (score >= 60) {
+                this.formScoreElement.className = "status-value warning";
+            } else {
+                this.formScoreElement.className = "status-value error";
+            }
+        }
+    }
 
     drawGraph() {
         this.drawGraphBackground();
@@ -511,16 +531,6 @@ export class Squat extends Exercise {
             ctx.globalAlpha = 1.0; // Reset transparency
         });
     }
-
-    // interpolateTemplateAngle(templateAngles, targetTime) {
-    //     const squatDuration = 3.0; // 3 seconds
-        
-    //     // Clamp targetTime to valid range
-    //     const clampedTime = Math.max(0, Math.min(targetTime, squatDuration));
-        
-    //     // Use the asymmetric sin function to get the angle at the target time
-    //     return this.getAngleAsymmetricSin(clampedTime, squatDuration, templateAngles.centerAngle, templateAngles.amplitude);
-    // }
 
     validate(results) {
         if (results.landmarks && results.landmarks.length > 0) {
