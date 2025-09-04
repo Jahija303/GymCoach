@@ -2,12 +2,12 @@ import { Exercise } from './exercise.js';
 import { LANDMARK } from '../util/landmark_reader.js';
 import { CANVAS_HEIGHT, CANVAS_WIDTH } from '../util/pose.js';
 
-const PROPER_SQUAT_FORM_HIP_ANGLES_IN_TIME = {
+const PROPER_SQUAT_FORM_HIP_ANGLES = {
     centerAngle: 115,
     amplitude: 60
 }
 
-const PROPER_SQUAT_FORM_KNEE_ANGLES_IN_TIME = {
+const PROPER_SQUAT_FORM_KNEE_ANGLES = {
     centerAngle: 125,
     amplitude: 50
 };
@@ -33,21 +33,13 @@ export class Squat extends Exercise {
         };
         this.lastMovementDuration = null;
         this.tempoWarningShown = false;
-        this.drawnTemplateLines = {
-            hip: [],
-            leg: []
-        };
-        this.templateProgress = {
-            hip: 0,
-            leg: 0
-        };
         this.storedFormDifferenceAreas = {
             hip: [],
             leg: []
         };
-        this.movementEndTime = null;
         this.AREA_DRAWING_DELAY = 500; // Continue drawing area for 0.5 seconds after movement stops
-
+        this.MIN_SQUAT_DURATION = 2000; // Minimum squat duration to count as a rep (2 second)
+        this.MAX_SQUAT_DURATION = 4000; // Maximum squat duration to count as a rep (4 seconds)
         this.STANDING_HIP_RANGE = [170, 180];
         this.STANDING_LEG_RANGE = [170, 180];
         this.MOVEMENT_START_THRESHOLD = 10; // degrees below standing position
@@ -160,8 +152,8 @@ export class Squat extends Exercise {
         }
 
         // Continue updating form difference area for a delay period after movement stops
-        const shouldUpdateArea = this.isMovementActive || 
-            (this.movementEndTime && (currentTime - this.movementEndTime) < this.AREA_DRAWING_DELAY);
+        // const shouldUpdateArea = this.isMovementActive || 
+        //     (this.movementEndTime && (currentTime - this.movementEndTime) < this.AREA_DRAWING_DELAY);
 
         // if (shouldUpdateArea) {
         //     this.updateStoredFormDifferenceArea(currentTime, selectedSide.leg, 'leg');
@@ -174,17 +166,11 @@ export class Squat extends Exercise {
             );
         });
 
-        Object.keys(this.drawnTemplateLines).forEach(key => {
-            this.drawnTemplateLines[key] = this.drawnTemplateLines[key].filter(
-                point => currentTime - point.time <= this.graphSettings.maxTime
-            );
-        });
-
-        Object.keys(this.storedFormDifferenceAreas).forEach(key => {
-            this.storedFormDifferenceAreas[key] = this.storedFormDifferenceAreas[key].filter(
-                point => currentTime - point.time <= this.graphSettings.maxTime
-            );
-        });
+        // Object.keys(this.storedFormDifferenceAreas).forEach(key => {
+        //     this.storedFormDifferenceAreas[key] = this.storedFormDifferenceAreas[key].filter(
+        //         point => currentTime - point.time <= this.graphSettings.maxTime
+        //     );
+        // });
         
         this.drawGraph();
     }
@@ -207,20 +193,20 @@ export class Squat extends Exercise {
         return (rightShoulder?.visibility + rightHip?.visibility + rightKnee?.visibility + rightAnkle?.visibility) / 4 || 0;
     }
 
-    updateStoredFormDifferenceArea(currentTime, userAngle, angleType) {
-        const templateAngles = angleType === 'hip' ? PROPER_SQUAT_FORM_HIP_ANGLES_IN_TIME : PROPER_SQUAT_FORM_KNEE_ANGLES_IN_TIME;
-        const relativeTime = (currentTime - this.movementStartTime) / 1000; // Convert to seconds
+    // updateStoredFormDifferenceArea(currentTime, userAngle, angleType) {
+    //     const templateAngles = angleType === 'hip' ? PROPER_SQUAT_FORM_HIP_ANGLES : PROPER_SQUAT_FORM_KNEE_ANGLES;
+    //     const relativeTime = (currentTime - this.movementStartTime) / 1000; // Convert to seconds
         
-        if (relativeTime >= 0) {
-            const templateAngle = this.interpolateTemplateAngle(templateAngles, relativeTime);
+    //     if (relativeTime >= 0) {
+    //         const templateAngle = this.interpolateTemplateAngle(templateAngles, relativeTime);
             
-            this.storedFormDifferenceAreas[angleType].push({
-                time: currentTime,
-                userAngle: userAngle,
-                templateAngle: templateAngle
-            });
-        }
-    }
+    //         this.storedFormDifferenceAreas[angleType].push({
+    //             time: currentTime,
+    //             userAngle: userAngle,
+    //             templateAngle: templateAngle
+    //         });
+    //     }
+    // }
 
     detectMovementStart(currentAngles) {
         if (this.isMovementActive) return false;
@@ -243,14 +229,6 @@ export class Squat extends Exercise {
             this.isMovementActive = true;
             this.movementAngleHistory = { leg: [], hip: [] };
             this.tempoWarningShown = false;
-            this.drawnTemplateLines = {
-                hip: [],
-                leg: []
-            };
-            this.templateProgress = {
-                hip: 0,
-                leg: 0
-            };
             this.storedFormDifferenceAreas = {
                 hip: [],
                 leg: []
@@ -339,7 +317,7 @@ export class Squat extends Exercise {
         this.movementAngleHistory.hip.forEach(point => {
             const relativeTime = (point.time - this.movementStartTime) / 1000; // Convert to seconds
             if (relativeTime >= 0 && relativeTime <= 3) { // Only within 3-second exercise window
-                const idealHipAngle = this.interpolateTemplateAngle(PROPER_SQUAT_FORM_HIP_ANGLES_IN_TIME, relativeTime);
+                const idealHipAngle = this.interpolateTemplateAngle(PROPER_SQUAT_FORM_HIP_ANGLES, relativeTime);
                 const error = Math.abs(point.angle - idealHipAngle);
                 totalHipError += error;
                 hipSampleCount++;
@@ -350,7 +328,7 @@ export class Squat extends Exercise {
         this.movementAngleHistory.leg.forEach(point => {
             const relativeTime = (point.time - this.movementStartTime) / 1000; // Convert to seconds
             if (relativeTime >= 0 && relativeTime <= 3) { // Only within 3-second exercise window
-                const idealLegAngle = this.interpolateTemplateAngle(PROPER_SQUAT_FORM_KNEE_ANGLES_IN_TIME, relativeTime);
+                const idealLegAngle = this.interpolateTemplateAngle(PROPER_SQUAT_FORM_KNEE_ANGLES, relativeTime);
                 const error = Math.abs(point.angle - idealLegAngle);
                 totalLegError += error;
                 legSampleCount++;
@@ -387,21 +365,19 @@ export class Squat extends Exercise {
     drawGraph() {
         this.drawGraphBackground();
 
+        // const currentTime = Date.now() - this.startTime;
+        // this.drawStoredFormDifferenceArea(ctx, canvas, currentTime, 'hip');
+        // this.drawStoredFormDifferenceArea(ctx, canvas, currentTime, 'leg');
+
+        this.drawProgressiveIdealLines();
+        this.drawUserAngleLines();
+    }
+
+    drawUserAngleLines() {
         const ctx = this.graphCtx;
         const canvas = this.graphCanvas;
         const currentTime = Date.now() - this.startTime;
-
-        this.drawStoredFormDifferenceArea(ctx, canvas, currentTime, 'hip');
-        this.drawStoredFormDifferenceArea(ctx, canvas, currentTime, 'leg');
-
-        // Draw template lines progressively when movement is active
-        if (this.isMovementActive) {
-            this.drawProgressiveTemplateLine(PROPER_SQUAT_FORM_KNEE_ANGLES_IN_TIME, 'leg');
-            this.drawProgressiveTemplateLine(PROPER_SQUAT_FORM_HIP_ANGLES_IN_TIME, 'hip');
-        }
-
-        this.drawStoredTemplateLines(ctx, canvas);
-
+        
         Object.keys(this.angleHistory).forEach(angleType => {
             const data = this.angleHistory[angleType];
             if (data.length < 2) return;
@@ -413,7 +389,7 @@ export class Squat extends Exercise {
             data.forEach((point, index) => {
                 const x = ((currentTime - point.time) / this.graphSettings.maxTime) * canvas.width;
                 const y = canvas.height - ((point.angle - this.graphSettings.minAngle) / 
-                         (this.graphSettings.maxAngle - this.graphSettings.minAngle)) * canvas.height;
+                        (this.graphSettings.maxAngle - this.graphSettings.minAngle)) * canvas.height;
                 
                 const adjustedX = canvas.width - x; // Reverse x to show newest data on right
                 
@@ -428,201 +404,68 @@ export class Squat extends Exercise {
         });
     }
 
-    drawStoredFormDifferenceArea(ctx, canvas, currentTime, angleType) {
-        const data = this.storedFormDifferenceAreas[angleType];
-        if (data.length < 2) return;
+    drawProgressiveIdealLines() {
+        if (!this.movementStartTime) return;
 
-        const color = this.graphSettings.colors[angleType];
+        const ctx = this.graphCtx;
+        const canvas = this.graphCanvas;
+        const currentTime = Date.now() - this.startTime;
+        const idealDuration = (this.MIN_SQUAT_DURATION + this.MAX_SQUAT_DURATION) / 2;
+
+        // Only draw during movement or keep existing line after movement
+        const endTime = this.movementEndTime || currentTime;
+        const elapsedTime = Math.min(endTime - this.movementStartTime, idealDuration);
         
-        // Set up fill style with transparency
-        ctx.fillStyle = color + '40'; // Add alpha channel for transparency
-        ctx.beginPath();
-
-        // Create arrays to store the path points
-        const userPoints = [];
-        const templatePoints = [];
-
-        // Calculate points for stored data
-        data.forEach(point => {
-            const x = ((currentTime - point.time) / this.graphSettings.maxTime) * canvas.width;
-            const adjustedX = canvas.width - x;
+        ['hip', 'leg'].forEach(angleType => {
+            const templateAngles = angleType === 'hip' ? 
+                PROPER_SQUAT_FORM_HIP_ANGLES : 
+                PROPER_SQUAT_FORM_KNEE_ANGLES;
             
-            if (adjustedX >= 0 && adjustedX <= canvas.width) {
-                const userY = canvas.height - ((point.userAngle - this.graphSettings.minAngle) / 
-                             (this.graphSettings.maxAngle - this.graphSettings.minAngle)) * canvas.height;
-                const templateY = canvas.height - ((point.templateAngle - this.graphSettings.minAngle) / 
-                                 (this.graphSettings.maxAngle - this.graphSettings.minAngle)) * canvas.height;
-                
-                userPoints.push({ x: adjustedX, y: userY });
-                templatePoints.push({ x: adjustedX, y: templateY });
-            }
-        });
-
-        // Draw the filled area between user and template lines
-        if (userPoints.length > 1 && templatePoints.length > 1) {
+            ctx.strokeStyle = this.graphSettings.colors[angleType];
+            ctx.globalAlpha = 0.6; // Slight transparency
+            ctx.lineWidth = 2;
+            ctx.setLineDash([5, 5]); // Dashed line
             ctx.beginPath();
             
-            // Start with the first user point
-            ctx.moveTo(userPoints[0].x, userPoints[0].y);
-            
-            // Draw along user line
-            for (let i = 1; i < userPoints.length; i++) {
-                ctx.lineTo(userPoints[i].x, userPoints[i].y);
-            }
-            
-            // Draw back along template line (in reverse)
-            for (let i = templatePoints.length - 1; i >= 0; i--) {
-                ctx.lineTo(templatePoints[i].x, templatePoints[i].y);
-            }
-            
-            // Close the path
-            ctx.closePath();
-            ctx.fill();
-        }
-    }
-
-    drawProgressiveTemplateLine(templateAngles, angleType) {
-        const currentTime = Date.now() - this.startTime;
-        const elapsedSinceMovementStart = currentTime - this.movementStartTime;
-        const squatDuration = 3.0; // 3 seconds
-        const intervalMs = 50; // Add a point every 50ms for smooth progression
-
-        // Safety check: don't add points if movement hasn't started or is too old
-        if (elapsedSinceMovementStart < 0 || elapsedSinceMovementStart > squatDuration * 1000) {
-            return;
-        }
-
-        // Calculate how many points we should have by now based on elapsed time
-        const expectedPoints = Math.floor(elapsedSinceMovementStart / intervalMs) + 1;
-        const currentProgress = this.templateProgress[angleType];
-        const maxPoints = Math.ceil((squatDuration * 1000) / intervalMs); // Maximum possible points
-        
-        // Safety check: limit the number of points we can add in one call
-        const maxPointsToAdd = 5;
-        let pointsAdded = 0;
-        
-        // Add points up to where we should be based on elapsed time
-        while (currentProgress < expectedPoints && 
-               currentProgress < maxPoints && 
-               pointsAdded < maxPointsToAdd) {
-            
-            const timeInSeconds = (currentProgress * intervalMs) / 1000; // Convert to seconds
-            const angle = this.getAngleAsymmetricSin(timeInSeconds, squatDuration, templateAngles.centerAngle, templateAngles.amplitude);
-            const pointTime = this.movementStartTime + (timeInSeconds * 1000); // Convert to absolute time
-            
-            this.drawnTemplateLines[angleType].push({ time: pointTime, angle: angle });
-            this.templateProgress[angleType]++;
-            pointsAdded++;
-        }
-    }
-
-    drawStoredTemplateLines(ctx, canvas) {
-        const currentTime = Date.now() - this.startTime;
-
-        if (this.drawnTemplateLines.hip.length > 0) {
-            this.drawStoredTemplateLine(ctx, canvas, this.drawnTemplateLines.hip, this.graphSettings.colors.hip, currentTime);
-        }
-
-        if (this.drawnTemplateLines.leg.length > 0) {
-            this.drawStoredTemplateLine(ctx, canvas, this.drawnTemplateLines.leg, this.graphSettings.colors.leg, currentTime);
-        }
-    }
-
-    drawStoredTemplateLine(ctx, canvas, points, color, currentTime) {
-        if (points.length < 1) return;
-        
-        ctx.strokeStyle = color;
-        ctx.lineWidth = 1;
-        ctx.setLineDash([5, 5]); // Dashed line for template
-        ctx.beginPath();
-
-        let firstPoint = true;
-        points.forEach(point => {
-            const x = ((currentTime - point.time) / this.graphSettings.maxTime) * canvas.width;
-            const adjustedX = canvas.width - x; // Reverse x to show newest data on right
-            const y = canvas.height - ((point.angle - this.graphSettings.minAngle) / 
-                     (this.graphSettings.maxAngle - this.graphSettings.minAngle)) * canvas.height;
-
-            // Only draw points within canvas bounds
-            if (adjustedX >= 0 && adjustedX <= canvas.width) {
-                if (firstPoint) {
+            // Draw ideal line from movement start to current elapsed time
+            for (let t = 0; t <= elapsedTime; t += 50) {
+                const relativeTime = t / 1000; // Convert to seconds
+                const idealAngle = this.getAngleAsymmetricSin(
+                    relativeTime, 
+                    idealDuration / 1000, 
+                    templateAngles.centerAngle, 
+                    templateAngles.amplitude
+                );
+                
+                const timeFromStart = this.movementStartTime + t;
+                const x = ((currentTime - timeFromStart) / this.graphSettings.maxTime) * canvas.width;
+                const y = canvas.height - ((idealAngle - this.graphSettings.minAngle) / 
+                        (this.graphSettings.maxAngle - this.graphSettings.minAngle)) * canvas.height;
+                
+                const adjustedX = canvas.width - x; // Reverse x to show newest data on right
+                
+                if (t === 0) {
                     ctx.moveTo(adjustedX, y);
-                    firstPoint = false;
                 } else {
                     ctx.lineTo(adjustedX, y);
                 }
             }
+            
+            ctx.stroke();
+            ctx.setLineDash([]); // Reset to solid line
+            ctx.globalAlpha = 1.0; // Reset transparency
         });
-
-        ctx.stroke();
-        ctx.setLineDash([]); // Reset to solid line for subsequent drawings
     }
 
-    drawTemplateLine(ctx, canvas, templateAngles, color) {
-        ctx.strokeStyle = color;
-        ctx.lineWidth = 1;
-        ctx.setLineDash([5, 5]); // Dashed line for template
-        ctx.beginPath();
+    // interpolateTemplateAngle(templateAngles, targetTime) {
+    //     const squatDuration = 3.0; // 3 seconds
         
-        const currentTime = Date.now() - this.startTime;
-        const squatDuration = 3.0; // 3 seconds
-        const templateCycleDuration = 3000; // 3 seconds in milliseconds
-        const totalCycleDuration = templateCycleDuration;
-
-        // Calculate visible time window
-        const visibleTimeStart = Math.max(0, currentTime - this.graphSettings.maxTime);
-        const visibleTimeEnd = currentTime;
-        // Generate continuous points for the visible time window
-        const points = [];
-        const sampleInterval = 50; // Sample every 50ms for smooth line
+    //     // Clamp targetTime to valid range
+    //     const clampedTime = Math.max(0, Math.min(targetTime, squatDuration));
         
-        for (let time = visibleTimeStart; time <= visibleTimeEnd; time += sampleInterval) {
-            const cyclePosition = time % totalCycleDuration;
-            let angle;
-            
-            if (cyclePosition <= templateCycleDuration) {
-                // During template pattern (0-3000ms): use asymmetric sin function
-                const normalizedTime = cyclePosition / 1000; // Convert to seconds (0-3)
-                angle = this.getAngleAsymmetricSin(normalizedTime, squatDuration, templateAngles.centerAngle, templateAngles.amplitude);
-            } else {
-                angle = 175;
-            }
-            
-            points.push({ time, angle });
-        }
-        
-        // Draw the continuous line
-        let firstPoint = true;
-        points.forEach(point => {
-            const x = ((currentTime - point.time) / this.graphSettings.maxTime) * canvas.width;
-            const adjustedX = canvas.width - x; // Reverse x to show newest data on right
-            const y = canvas.height - ((point.angle - this.graphSettings.minAngle) / 
-                     (this.graphSettings.maxAngle - this.graphSettings.minAngle)) * canvas.height;
-            
-            // Only draw points within canvas bounds
-            if (adjustedX >= 0 && adjustedX <= canvas.width) {
-                if (firstPoint) {
-                    ctx.moveTo(adjustedX, y);
-                    firstPoint = false;
-                } else {
-                    ctx.lineTo(adjustedX, y);
-                }
-            }
-        });
-        
-        ctx.stroke();
-        ctx.setLineDash([]); // Reset to solid line for subsequent drawings
-    }
-
-    interpolateTemplateAngle(templateAngles, targetTime) {
-        const squatDuration = 3.0; // 3 seconds
-        
-        // Clamp targetTime to valid range
-        const clampedTime = Math.max(0, Math.min(targetTime, squatDuration));
-        
-        // Use the asymmetric sin function to get the angle at the target time
-        return this.getAngleAsymmetricSin(clampedTime, squatDuration, templateAngles.centerAngle, templateAngles.amplitude);
-    }
+    //     // Use the asymmetric sin function to get the angle at the target time
+    //     return this.getAngleAsymmetricSin(clampedTime, squatDuration, templateAngles.centerAngle, templateAngles.amplitude);
+    // }
 
     validate(results) {
         if (results.landmarks && results.landmarks.length > 0) {
