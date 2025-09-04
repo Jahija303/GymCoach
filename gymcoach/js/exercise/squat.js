@@ -3,12 +3,12 @@ import { LANDMARK } from '../util/landmark_reader.js';
 import { CANVAS_HEIGHT, CANVAS_WIDTH } from '../util/pose.js';
 
 const PROPER_SQUAT_FORM_HIP_ANGLES = {
-    centerAngle: 115,
+    centerAngle: 110,
     amplitude: 60
 }
 
 const PROPER_SQUAT_FORM_KNEE_ANGLES = {
-    centerAngle: 125,
+    centerAngle: 120,
     amplitude: 50
 };
 
@@ -31,12 +31,13 @@ export class Squat extends Exercise {
             leg: [],
             hip: []
         };
+        this.differenceAreas = {
+            leg: [],
+            hip: []
+        };
+        this.currentMovementId = 0;
         this.lastMovementDuration = null;
         this.tempoWarningShown = false;
-        this.storedFormDifferenceAreas = {
-            hip: [],
-            leg: []
-        };
         this.AREA_DRAWING_DELAY = 500; // Continue drawing area for 0.5 seconds after movement stops
         this.MIN_SQUAT_DURATION = 2000; // Minimum squat duration to count as a rep (2 second)
         this.MAX_SQUAT_DURATION = 4000; // Maximum squat duration to count as a rep (4 seconds)
@@ -149,16 +150,31 @@ export class Squat extends Exercise {
         if (this.isMovementActive) {
             this.movementAngleHistory.leg.push({ time: currentTime, angle: selectedSide.leg });
             this.movementAngleHistory.hip.push({ time: currentTime, angle: selectedSide.hip });
+            
+            const idealDuration = (this.MIN_SQUAT_DURATION + this.MAX_SQUAT_DURATION) / 2;
+            const relativeTime = (currentTime - this.movementStartTime) / 1000;
+            
+            ['leg', 'hip'].forEach(angleType => {
+                const templateAngles = angleType === 'hip' ? 
+                    PROPER_SQUAT_FORM_HIP_ANGLES : 
+                    PROPER_SQUAT_FORM_KNEE_ANGLES;
+                
+                const userAngle = angleType === 'hip' ? selectedSide.hip : selectedSide.leg;
+                const idealAngle = this.getAngleAsymmetricSin(
+                    relativeTime, 
+                    idealDuration / 1000, 
+                    templateAngles.centerAngle, 
+                    templateAngles.amplitude
+                );
+                
+                this.differenceAreas[angleType].push({
+                    time: currentTime,
+                    userAngle: userAngle,
+                    idealAngle: idealAngle,
+                    movementId: this.currentMovementId
+                });
+            });
         }
-
-        // Continue updating form difference area for a delay period after movement stops
-        // const shouldUpdateArea = this.isMovementActive || 
-        //     (this.movementEndTime && (currentTime - this.movementEndTime) < this.AREA_DRAWING_DELAY);
-
-        // if (shouldUpdateArea) {
-        //     this.updateStoredFormDifferenceArea(currentTime, selectedSide.leg, 'leg');
-        //     this.updateStoredFormDifferenceArea(currentTime, selectedSide.hip, 'hip');
-        // }
 
         Object.keys(this.angleHistory).forEach(key => {
             this.angleHistory[key] = this.angleHistory[key].filter(
@@ -166,11 +182,11 @@ export class Squat extends Exercise {
             );
         });
 
-        // Object.keys(this.storedFormDifferenceAreas).forEach(key => {
-        //     this.storedFormDifferenceAreas[key] = this.storedFormDifferenceAreas[key].filter(
-        //         point => currentTime - point.time <= this.graphSettings.maxTime
-        //     );
-        // });
+        Object.keys(this.differenceAreas).forEach(key => {
+            this.differenceAreas[key] = this.differenceAreas[key].filter(
+                point => currentTime - point.time <= this.graphSettings.maxTime
+            );
+        });
         
         this.drawGraph();
     }
@@ -193,21 +209,6 @@ export class Squat extends Exercise {
         return (rightShoulder?.visibility + rightHip?.visibility + rightKnee?.visibility + rightAnkle?.visibility) / 4 || 0;
     }
 
-    // updateStoredFormDifferenceArea(currentTime, userAngle, angleType) {
-    //     const templateAngles = angleType === 'hip' ? PROPER_SQUAT_FORM_HIP_ANGLES : PROPER_SQUAT_FORM_KNEE_ANGLES;
-    //     const relativeTime = (currentTime - this.movementStartTime) / 1000; // Convert to seconds
-        
-    //     if (relativeTime >= 0) {
-    //         const templateAngle = this.interpolateTemplateAngle(templateAngles, relativeTime);
-            
-    //         this.storedFormDifferenceAreas[angleType].push({
-    //             time: currentTime,
-    //             userAngle: userAngle,
-    //             templateAngle: templateAngle
-    //         });
-    //     }
-    // }
-
     detectMovementStart(currentAngles) {
         if (this.isMovementActive) return false;
 
@@ -229,11 +230,8 @@ export class Squat extends Exercise {
             this.isMovementActive = true;
             this.movementAngleHistory = { leg: [], hip: [] };
             this.tempoWarningShown = false;
-            this.storedFormDifferenceAreas = {
-                hip: [],
-                leg: []
-            };
             this.movementEndTime = null; // Reset when starting new movement
+            this.currentMovementId++; // Increment movement ID for new session
 
             if (this.movementStatusElement) {
                 this.movementStatusElement.textContent = "Active";
@@ -303,74 +301,70 @@ export class Squat extends Exercise {
         }
     }
 
-    validateFormScore() {
-        if (!this.movementAngleHistory.hip.length || !this.movementAngleHistory.leg.length) {
-            return;
-        }
+    // validateFormScore() {
+    //     if (!this.movementAngleHistory.hip.length || !this.movementAngleHistory.leg.length) {
+    //         return;
+    //     }
 
-        let totalHipError = 0;
-        let totalLegError = 0;
-        let hipSampleCount = 0;
-        let legSampleCount = 0;
+    //     let totalHipError = 0;
+    //     let totalLegError = 0;
+    //     let hipSampleCount = 0;
+    //     let legSampleCount = 0;
 
-        // Calculate average error for hip angles
-        this.movementAngleHistory.hip.forEach(point => {
-            const relativeTime = (point.time - this.movementStartTime) / 1000; // Convert to seconds
-            if (relativeTime >= 0 && relativeTime <= 3) { // Only within 3-second exercise window
-                const idealHipAngle = this.interpolateTemplateAngle(PROPER_SQUAT_FORM_HIP_ANGLES, relativeTime);
-                const error = Math.abs(point.angle - idealHipAngle);
-                totalHipError += error;
-                hipSampleCount++;
-            }
-        });
+    //     // Calculate average error for hip angles
+    //     this.movementAngleHistory.hip.forEach(point => {
+    //         const relativeTime = (point.time - this.movementStartTime) / 1000; // Convert to seconds
+    //         if (relativeTime >= 0 && relativeTime <= 3) { // Only within 3-second exercise window
+    //             const idealHipAngle = this.interpolateTemplateAngle(PROPER_SQUAT_FORM_HIP_ANGLES, relativeTime);
+    //             const error = Math.abs(point.angle - idealHipAngle);
+    //             totalHipError += error;
+    //             hipSampleCount++;
+    //         }
+    //     });
 
-        // Calculate average error for leg angles
-        this.movementAngleHistory.leg.forEach(point => {
-            const relativeTime = (point.time - this.movementStartTime) / 1000; // Convert to seconds
-            if (relativeTime >= 0 && relativeTime <= 3) { // Only within 3-second exercise window
-                const idealLegAngle = this.interpolateTemplateAngle(PROPER_SQUAT_FORM_KNEE_ANGLES, relativeTime);
-                const error = Math.abs(point.angle - idealLegAngle);
-                totalLegError += error;
-                legSampleCount++;
-            }
-        });
+    //     // Calculate average error for leg angles
+    //     this.movementAngleHistory.leg.forEach(point => {
+    //         const relativeTime = (point.time - this.movementStartTime) / 1000; // Convert to seconds
+    //         if (relativeTime >= 0 && relativeTime <= 3) { // Only within 3-second exercise window
+    //             const idealLegAngle = this.interpolateTemplateAngle(PROPER_SQUAT_FORM_KNEE_ANGLES, relativeTime);
+    //             const error = Math.abs(point.angle - idealLegAngle);
+    //             totalLegError += error;
+    //             legSampleCount++;
+    //         }
+    //     });
 
-        if (hipSampleCount === 0 || legSampleCount === 0) {
-            return;
-        }
+    //     if (hipSampleCount === 0 || legSampleCount === 0) {
+    //         return;
+    //     }
 
-        // Calculate average errors
-        const avgHipError = totalHipError / hipSampleCount;
-        const avgLegError = totalLegError / legSampleCount;
-        const avgTotalError = (avgHipError + avgLegError) / 2;
+    //     // Calculate average errors
+    //     const avgHipError = totalHipError / hipSampleCount;
+    //     const avgLegError = totalLegError / legSampleCount;
+    //     const avgTotalError = (avgHipError + avgLegError) / 2;
 
-        // Convert error to score (0-100 scale, where lower error = higher score)
-        // Assuming max reasonable error is 30 degrees
-        const maxError = 30;
-        const score = Math.max(0, Math.round(100 - (avgTotalError / maxError) * 100));
+    //     // Convert error to score (0-100 scale, where lower error = higher score)
+    //     // Assuming max reasonable error is 30 degrees
+    //     const maxError = 30;
+    //     const score = Math.max(0, Math.round(100 - (avgTotalError / maxError) * 100));
 
-        // Update form score display
-        if (this.formScoreElement) {
-            this.formScoreElement.textContent = `${score}%`;
-            if (score >= 80) {
-                this.formScoreElement.className = "status-value good";
-            } else if (score >= 60) {
-                this.formScoreElement.className = "status-value warning";
-            } else {
-                this.formScoreElement.className = "status-value error";
-            }
-        }
-    }
+    //     // Update form score display
+    //     if (this.formScoreElement) {
+    //         this.formScoreElement.textContent = `${score}%`;
+    //         if (score >= 80) {
+    //             this.formScoreElement.className = "status-value good";
+    //         } else if (score >= 60) {
+    //             this.formScoreElement.className = "status-value warning";
+    //         } else {
+    //             this.formScoreElement.className = "status-value error";
+    //         }
+    //     }
+    // }
 
     drawGraph() {
         this.drawGraphBackground();
-
-        // const currentTime = Date.now() - this.startTime;
-        // this.drawStoredFormDifferenceArea(ctx, canvas, currentTime, 'hip');
-        // this.drawStoredFormDifferenceArea(ctx, canvas, currentTime, 'leg');
-
-        this.drawProgressiveIdealLines();
         this.drawUserAngleLines();
+        this.drawProgressiveIdealLines();
+        this.drawDifferenceArea();
     }
 
     drawUserAngleLines() {
@@ -453,6 +447,67 @@ export class Squat extends Exercise {
             
             ctx.stroke();
             ctx.setLineDash([]); // Reset to solid line
+            ctx.globalAlpha = 1.0; // Reset transparency
+        });
+    }
+
+    drawDifferenceArea() {
+        const ctx = this.graphCtx;
+        const canvas = this.graphCanvas;
+        const currentTime = Date.now() - this.startTime;
+
+        ['hip', 'leg'].forEach(angleType => {
+            const data = this.differenceAreas[angleType];
+            if (data.length < 2) return;
+
+            // Group data points by movement ID to draw separate areas
+            const movementGroups = {};
+            data.forEach(point => {
+                if (!movementGroups[point.movementId]) {
+                    movementGroups[point.movementId] = [];
+                }
+                movementGroups[point.movementId].push(point);
+            });
+
+            // Draw each movement session as a separate area
+            Object.keys(movementGroups).forEach(movementId => {
+                const groupData = movementGroups[movementId];
+                if (groupData.length < 2) return;
+
+                ctx.fillStyle = this.graphSettings.colors[angleType];
+                ctx.globalAlpha = 0.2; // Semi-transparent
+                ctx.beginPath();
+
+                // Draw the filled area between user line and ideal line for this movement
+                groupData.forEach((point, index) => {
+                    const x = ((currentTime - point.time) / this.graphSettings.maxTime) * canvas.width;
+                    const adjustedX = canvas.width - x; // Reverse x to show newest data on right
+                    
+                    const userY = canvas.height - ((point.userAngle - this.graphSettings.minAngle) / 
+                            (this.graphSettings.maxAngle - this.graphSettings.minAngle)) * canvas.height;
+
+                    if (index === 0) {
+                        ctx.moveTo(adjustedX, userY);
+                    } else {
+                        ctx.lineTo(adjustedX, userY);
+                    }
+                });
+
+                // Close the path by drawing back along the ideal line
+                for (let i = groupData.length - 1; i >= 0; i--) {
+                    const point = groupData[i];
+                    const x = ((currentTime - point.time) / this.graphSettings.maxTime) * canvas.width;
+                    const adjustedX = canvas.width - x;
+                    const idealY = canvas.height - ((point.idealAngle - this.graphSettings.minAngle) / 
+                            (this.graphSettings.maxAngle - this.graphSettings.minAngle)) * canvas.height;
+                    
+                    ctx.lineTo(adjustedX, idealY);
+                }
+
+                ctx.closePath();
+                ctx.fill();
+            });
+
             ctx.globalAlpha = 1.0; // Reset transparency
         });
     }
