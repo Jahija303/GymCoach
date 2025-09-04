@@ -1,5 +1,5 @@
 import { Camera } from './util/camera.js';
-import { Three } from './util/three.js';
+// import { Three } from './util/three.js';
 import { Pose } from './util/pose.js';
 import { Squat } from './exercise/squat.js';
 
@@ -8,7 +8,7 @@ let cameraHelper;
 let pose;
 let intervalIDs = {};
 let frameCount = 0;
-let currentExercise = new Squat(); // SQUAT IS DEFAULT
+let currentExercises = {};
 const FPS = 30;
 
 // Capture the camera stream and start pose detection
@@ -41,6 +41,13 @@ function captureCamera(video, specifiedCamera, index) {
     }
   };
 
+  createAngleGraphForCamera(specifiedCamera, index);
+  
+  // Initialize exercise for this camera if not already done
+  if (!currentExercises[index]) {
+    currentExercises[index] = new Squat(index);
+  }
+
   // Get the camera stream and start the pose capture
   navigator.mediaDevices.getUserMedia(constraints).then(function(camera) {
     video.srcObject = camera;
@@ -68,10 +75,10 @@ function startPoseCapture(video, camera, index) {
 
                 results = await pose.poseLandmarkers[index].detectForVideo(video, startTimeMs);
                 pose.drawPoseLandmarks(results, index);
-                three.drawStickman3D(results?.landmarks[0], camera.color, index);
+                // three.drawStickman3D(results?.landmarks[0], camera.color, index);
 
-                if (frameCount % 3 === 0 && currentExercise) {
-                    currentExercise.validate(results);
+                if (currentExercises[index]) {
+                    currentExercises[index].validate(results, camera);
                 }
 
                 frameCount++;
@@ -84,11 +91,47 @@ function startPoseCapture(video, camera, index) {
     }, 1000 / FPS);
 }
 
+function createAngleGraphForCamera(specifiedCamera, index) {
+  // Create angle graph container for this specific camera
+  const videoContainer = document.getElementById('video-container');
+  
+  // Check if angle graph wrapper for this camera already exists
+  const existingWrapper = document.getElementById(`angle-graph-wrapper-${index}`);
+  if (!existingWrapper) {
+    const angleWrapper = document.createElement('div');
+    angleWrapper.className = 'wrapper';
+    angleWrapper.id = `angle-graph-wrapper-${index}`;
+    
+    const label = document.createElement('label');
+    label.textContent = `Angle Graph - ${specifiedCamera.label || `Camera ${index}`}`;
+    
+    const angleContainer = document.createElement('div');
+    angleContainer.id = `angle-graph-container-${index}`;
+    angleContainer.className = 'angle-graph-container';
+    
+    const angleCanvas = document.createElement('canvas');
+    angleCanvas.id = `angle-graph-canvas-${index}`;
+    angleCanvas.className = 'angle-graph-canvas';
+    
+    angleWrapper.appendChild(label);
+    angleWrapper.appendChild(angleContainer);
+    angleWrapper.appendChild(angleCanvas);
+    
+    // Find the first existing angle graph wrapper to insert before it (reverse order)
+    const firstAngleWrapper = videoContainer.querySelector('[id^="angle-graph-wrapper-"]');
+    if (firstAngleWrapper) {
+      videoContainer.insertBefore(angleWrapper, firstAngleWrapper);
+    } else {
+      videoContainer.appendChild(angleWrapper);
+    }
+  }
+}
+
 // When the page loads, initialize the 3D scene and camera
 // Initialize the camera and get all available devices in an array (ask for permissions as well)
 // Initialize the blazePose model for each device and store the landmarker in an array
 document.addEventListener('DOMContentLoaded', async function() {
-    three = new Three();
+    // three = new Three();
 
     cameraHelper = new Camera();
     await cameraHelper.initializeDevices();
@@ -108,13 +151,9 @@ document.getElementById('exercise-select').addEventListener('change', (event) =>
     switch (event.target.value) {
         case 'squat':
             console.log('Squat selected');
-            currentExercise = new Squat();
+            cameraHelper.devices.forEach((device, index) => {
+                currentExercises[index] = new Squat(index);
+            });
             break;
-        // case 'pushup':
-        //     console.log('Pushup selected');
-        //     break;
-        // case 'plank':
-        //     console.log('Plank selected');
-        //     break;
     }
 });

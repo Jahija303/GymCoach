@@ -13,8 +13,9 @@ const PROPER_SQUAT_FORM_KNEE_ANGLES = {
 };
 
 export class Squat extends Exercise {
-    constructor() {
+    constructor(cameraIndex = 0) {
         super();
+        this.cameraIndex = cameraIndex;
         this.currentSquatState = null;
         this.squatPhases = [];
         this.repCounter = 0;
@@ -55,7 +56,11 @@ export class Squat extends Exercise {
     }
 
     initializeAngleGraph() {
-        this.graphCanvas = document.getElementById('angle-graph-canvas');
+        this.graphCanvas = document.getElementById(`angle-graph-canvas-${this.cameraIndex}`);
+        if (!this.graphCanvas) {
+            console.warn(`Angle graph canvas not found for camera ${this.cameraIndex}`);
+            return;
+        }
         this.graphCanvas.width = CANVAS_WIDTH;
         this.graphCanvas.height = CANVAS_HEIGHT;
         this.graphCtx = this.graphCanvas.getContext('2d');
@@ -73,10 +78,17 @@ export class Squat extends Exercise {
     }
 
     drawGraphBackground() {
+        if (!this.graphCanvas || !this.graphCtx) {
+            return;
+        }
         const ctx = this.graphCtx;
         const canvas = this.graphCanvas;
         
         ctx.clearRect(0, 0, canvas.width, canvas.height);
+        
+        // Set black background
+        ctx.fillStyle = '#000';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
 
         // Draw grid
         ctx.strokeStyle = '#333';
@@ -381,6 +393,9 @@ export class Squat extends Exercise {
     }
 
     drawGraph() {
+        if (!this.graphCanvas || !this.graphCtx) {
+            return;
+        }
         this.drawGraphBackground();
         this.drawUserAngleLines();
         this.drawProgressiveIdealLines();
@@ -388,6 +403,9 @@ export class Squat extends Exercise {
     }
 
     drawUserAngleLines() {
+        if (!this.graphCanvas || !this.graphCtx) {
+            return;
+        }
         const ctx = this.graphCtx;
         const canvas = this.graphCanvas;
         const currentTime = Date.now() - this.startTime;
@@ -419,7 +437,7 @@ export class Squat extends Exercise {
     }
 
     drawProgressiveIdealLines() {
-        if (!this.movementStartTime) return;
+        if (!this.movementStartTime || !this.graphCanvas || !this.graphCtx) return;
 
         const ctx = this.graphCtx;
         const canvas = this.graphCanvas;
@@ -472,6 +490,9 @@ export class Squat extends Exercise {
     }
 
     drawDifferenceArea() {
+        if (!this.graphCanvas || !this.graphCtx) {
+            return;
+        }
         const ctx = this.graphCtx;
         const canvas = this.graphCanvas;
         const currentTime = Date.now() - this.startTime;
